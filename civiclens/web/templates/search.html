@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Search by Topic — CivicLens{% endblock %}
+{% block content %}
+<a href="/">&larr; Dashboard</a>
+<h1>Search by Topic</h1>
+<p class="muted">
+  Find everyone on record about a topic and what stance they took — e.g. search a topic
+  from a platform issue to see who's spoken in support of it. This is evidence, not a
+  verdict: read the quotes yourself before deciding who's an ally.
+</p>
+<form method="get">
+  <input type="text" name="topic" placeholder="Topic, e.g. 'affordable housing'" value="{{ topic }}">
+  <select name="stance">
+    <option value="" {% if not stance %}selected{% endif %}>Any stance</option>
+    <option value="support" {% if stance == 'support' %}selected{% endif %}>Support</option>
+    <option value="oppose" {% if stance == 'oppose' %}selected{% endif %}>Oppose</option>
+    <option value="neutral" {% if stance == 'neutral' %}selected{% endif %}>Neutral</option>
+    <option value="mixed" {% if stance == 'mixed' %}selected{% endif %}>Mixed</option>
+  </select>
+  <button type="submit">Search</button>
+</form>
+
+<div class="transcript">
+  {% for r in results %}
+    <div class="turn">
+      <div class="turn-speaker">
+        {% if r.statement.speaker.official_id %}
+          <a href="/officials/{{ r.statement.speaker.official_id }}">{{ r.statement.speaker.name }}</a>
+        {% elif r.statement.speaker.name %}
+          <a href="/speakers/{{ r.statement.speaker.id }}">{{ r.statement.speaker.name }}</a>
+        {% else %}
+          <a href="/speakers/{{ r.statement.speaker.id }}">Unidentified speaker #{{ r.statement.speaker.id }}</a>
+        {% endif %}
+        <a href="/meetings/{{ r.statement.meeting_id }}" class="muted">({{ r.statement.meeting.title }})</a>
+        <span class="tag tag-{{ r.stance.value }}">{{ r.topic.name }}: {{ r.stance.value }}</span>
+      </div>
+      <div class="turn-text">&ldquo;{{ r.evidence_quote }}&rdquo;</div>
+    </div>
+  {% else %}
+    {% if topic %}<p class="muted">No matches.</p>{% endif %}
+  {% endfor %}
+</div>
+{% endblock %}

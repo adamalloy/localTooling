@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Public Speakers — CivicLens{% endblock %}
+{% block content %}
+<a href="/">&larr; Dashboard</a>
+<h1>Public Speakers</h1>
+<p class="muted">
+  Every resident who has spoken during public comment, with how often they've shown up
+  and how much they've said. No labels here — open a profile to read their actual
+  statements and decide for yourself.
+</p>
+<form method="get">
+  <input type="text" name="q" placeholder="Search by name…" value="{{ q }}">
+  <button type="submit">Search</button>
+</form>
+<table>
+  <thead><tr><th>Name</th><th>Meetings attended</th><th>Statements</th></tr></thead>
+  <tbody>
+    {% for speaker, statement_count, meeting_count in rows %}
+      <tr>
+        <td><a href="/speakers/{{ speaker.id }}">{{ speaker.name or 'Unidentified #' ~ speaker.id }}</a></td>
+        <td>{{ meeting_count }}</td>
+        <td>{{ statement_count }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="3" class="muted">No public speakers recorded yet.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

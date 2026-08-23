@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}{{ meeting.title }} — CivicLens{% endblock %}
+{% block content %}
+<a href="/">&larr; Dashboard</a>
+<h1>{{ meeting.title }}</h1>
+<p class="muted">{{ meeting.city.name }} — {{ meeting.meeting_date.strftime('%Y-%m-%d') if meeting.meeting_date else '' }} — {{ meeting.meeting_type or '' }}</p>
+
+{% if meeting.summary %}
+<section>
+  <h2>Summary</h2>
+  <p>{{ meeting.summary.summary_text }}</p>
+  <h3>Key takeaways</h3>
+  <ul>{% for t in meeting.summary.key_takeaways %}<li>{{ t }}</li>{% endfor %}</ul>
+
+  <div class="two-col">
+    <div>
+      <h3>Controversial</h3>
+      <ul>
+        {% for t in meeting.summary.controversial_topics %}
+          <li><strong>{{ t.topic }}</strong> — {{ t.notes }}</li>
+        {% else %}<li class="muted">None identified.</li>{% endfor %}
+      </ul>
+    </div>
+    <div>
+      <h3>Consensus</h3>
+      <ul>
+        {% for t in meeting.summary.consensus_topics %}
+          <li><strong>{{ t.topic }}</strong> — {{ t.notes }}</li>
+        {% else %}<li class="muted">None identified.</li>{% endfor %}
+      </ul>
+    </div>
+  </div>
+</section>
+{% else %}
+<p class="muted">Not yet analyzed. Run <code>scripts/run_analysis.py {{ meeting.id }}</code>.</p>
+{% endif %}
+
+{% if votes %}
+<section>
+  <h2>Votes</h2>
+  <table>
+    <thead><tr><th>Official</th><th>Agenda item</th><th>Vote</th></tr></thead>
+    <tbody>
+      {% for v in votes %}
+        <tr><td><a href="/officials/{{ v.official_id }}">{{ v.official.name }}</a></td><td>{{ v.agenda_item_id or '' }}</td><td>{{ v.vote_value.value }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+
+<section>
+  <h2>Transcript</h2>
+  <div class="transcript">
+    {% for s in statements %}
+      <div class="turn">
+        <div class="turn-speaker">
+          {% if s.speaker.official_id %}
+            <a href="/officials/{{ s.speaker.official_id }}">{{ s.speaker.name or 'Official' }}</a>
+          {% elif s.speaker.name %}
+            <a href="/speakers/{{ s.speaker.id }}">{{ s.speaker.name }}</a>
+          {% else %}
+            <a href="/speakers/{{ s.speaker.id }}">Unidentified speaker #{{ s.speaker.id }}</a>
+          {% endif %}
+          {% if s.start_seconds is not none %}
+            <span class="muted">{{ '%d:%02d'|format(s.start_seconds // 60, s.start_seconds % 60) }}</span>
+          {% endif %}
+          {% if s.contains_grievance %}<span class="tag tag-grievance">grievance</span>{% endif %}
+        </div>
+        <div class="turn-text">{{ s.text }}</div>
+        {% if s.topics %}
+        <div class="turn-topics">
+          {% for st in s.topics %}
+            <span class="tag tag-{{ st.stance.value }}">{{ st.topic.name }}: {{ st.stance.value }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

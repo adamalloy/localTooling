@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}{{ speaker.name or 'Speaker' }} — CivicLens{% endblock %}
+{% block content %}
+<a href="/speakers">&larr; Public Speakers</a>
+<h1>{{ speaker.name or 'Unidentified speaker #' ~ speaker.id }}</h1>
+<p class="muted">Attended {{ meeting_count }} meeting(s), {{ statements|length }} statement(s) on record.</p>
+
+{% if grievances %}
+<section>
+  <h2>Grievances raised</h2>
+  <ul>
+    {% for g in grievances %}<li>{{ g.grievance_summary }} <span class="muted">(<a href="/meetings/{{ g.meeting_id }}">meeting</a>)</span></li>{% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<section>
+  <h2>Statements</h2>
+  <div class="transcript">
+    {% for s in statements %}
+      <div class="turn">
+        <div class="turn-speaker"><a href="/meetings/{{ s.meeting_id }}">{{ s.meeting.title }}</a></div>
+        <div class="turn-text">{{ s.text }}</div>
+        {% if s.topics %}
+        <div class="turn-topics">
+          {% for st in s.topics %}<span class="tag tag-{{ st.stance.value }}">{{ st.topic.name }}: {{ st.stance.value }}</span>{% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

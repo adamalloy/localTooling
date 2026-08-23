@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{% block title %}CivicLens{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <nav class="topnav">
+    <a href="/" class="brand">CivicLens</a>
+    <a href="/officials">Officials</a>
+    <a href="/speakers">Public Speakers</a>
+    <a href="/search">Search by Topic</a>
+    <a href="/follow-ups">Follow-ups</a>
+  </nav>
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}{{ official.name }} — CivicLens{% endblock %}
+{% block content %}
+<a href="/officials">&larr; Officials</a>
+<h1>{{ official.name }}</h1>
+<p class="muted">{{ official.role or '' }} {{ '· ' + official.district if official.district else '' }}</p>
+{% if official.bio %}<p>{{ official.bio }}</p>{% endif %}
+
+<section>
+  <h2>Platform alignment</h2>
+  <table>
+    <thead><tr><th>Issue</th><th>Score</th><th>Rationale</th></tr></thead>
+    <tbody>
+      {% for a in alignments %}
+        <tr>
+          <td>{{ a.platform_issue.topic }}</td>
+          <td><span class="alignment-score score-{{ 'pos' if a.alignment_score > 0.15 else ('neg' if a.alignment_score < -0.15 else 'neutral') }}">{{ '%+.2f'|format(a.alignment_score) }}</span></td>
+          <td>{{ a.rationale }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="3" class="muted">Not yet scored against any platform issue.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2>Follow-up recommendations</h2>
+  <ul class="followup-list">
+    {% for f in follow_ups %}
+      <li>
+        <span class="tag">{{ f.status }}</span> <strong>{{ f.suggested_action }}</strong>
+        <div class="muted">{{ f.reason }}</div>
+      </li>
+    {% else %}<li class="muted">None yet.</li>{% endfor %}
+  </ul>
+</section>
+
+<section>
+  <h2>Recent votes</h2>
+  <table>
+    <thead><tr><th>Meeting</th><th>Agenda item</th><th>Vote</th></tr></thead>
+    <tbody>
+      {% for v in votes %}
+        <tr><td><a href="/meetings/{{ v.meeting_id }}">{{ v.meeting.title }}</a></td><td>{{ v.agenda_item_id or '' }}</td><td>{{ v.vote_value.value }}</td></tr>
+      {% else %}<tr><td colspan="3" class="muted">No votes recorded.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2>Recent statements</h2>
+  <div class="transcript">
+    {% for s in statements %}
+      <div class="turn">
+        <div class="turn-speaker"><a href="/meetings/{{ s.meeting_id }}">{{ s.meeting.title }}</a></div>
+        <div class="turn-text">{{ s.text }}</div>
+        {% if s.topics %}
+        <div class="turn-topics">
+          {% for st in s.topics %}<span class="tag tag-{{ st.stance.value }}">{{ st.topic.name }}: {{ st.stance.value }}</span>{% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    {% else %}<p class="muted">No statements recorded.</p>{% endfor %}
+  </div>
+</section>
+{% endblock %}

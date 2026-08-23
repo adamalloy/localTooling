@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Follow-ups — CivicLens{% endblock %}
+{% block content %}
+<a href="/">&larr; Dashboard</a>
+<h1>Follow-up recommendations</h1>
+<p class="muted">Suggested next steps for engaging council members — never generated for private speakers.</p>
+<table>
+  <thead><tr><th>Official</th><th>Priority</th><th>Status</th><th>Suggested action</th><th>Reason</th></tr></thead>
+  <tbody>
+    {% for f in follow_ups %}
+      <tr>
+        <td><a href="/officials/{{ f.official_id }}">{{ f.official.name }}</a></td>
+        <td>{{ f.priority }}</td>
+        <td>{{ f.status }}</td>
+        <td>{{ f.suggested_action }}</td>
+        <td class="muted">{{ f.reason }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="5" class="muted">None yet.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

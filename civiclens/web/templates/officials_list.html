@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Officials — CivicLens{% endblock %}
+{% block content %}
+<a href="/">&larr; Dashboard</a>
+<h1>Officials</h1>
+<div class="pills">
+  <a class="pill {% if not selected_city_id %}active{% endif %}" href="/officials">All</a>
+  {% for c in cities %}
+    <a class="pill {% if selected_city_id == c.id %}active{% endif %}" href="/officials?city_id={{ c.id }}">{{ c.name }}</a>
+  {% endfor %}
+</div>
+<table>
+  <thead><tr><th>Name</th><th>Role</th><th>City</th><th></th></tr></thead>
+  <tbody>
+    {% for o in officials %}
+      <tr>
+        <td>
+          <a href="/officials/{{ o.id }}">{{ o.name }}</a>
+          {% if o.is_reference_politician %}<span class="tag tag-support">tracked</span>{% endif %}
+          {% if o.is_reference_opposition %}<span class="tag tag-oppose">opposition</span>{% endif %}
+        </td>
+        <td>{{ o.role or '' }}</td>
+        <td>{{ o.city.name }}</td>
+        <td><a href="/officials/{{ o.id }}">Profile →</a></td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

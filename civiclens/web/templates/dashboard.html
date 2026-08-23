@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — CivicLens{% endblock %}
+{% block content %}
+<h1>Dashboard</h1>
+
+<section>
+  <h2>Cities</h2>
+  <div class="pills">
+    <a class="pill {% if not selected_city_id %}active{% endif %}" href="/">All</a>
+    {% for c in cities %}
+      <a class="pill {% if selected_city_id == c.id %}active{% endif %}" href="/?city_id={{ c.id }}">{{ c.name }}</a>
+    {% endfor %}
+  </div>
+</section>
+
+<section>
+  <h2>Recent meetings</h2>
+  <table>
+    <thead><tr><th>Date</th><th>Title</th><th>Status</th><th>Summary</th></tr></thead>
+    <tbody>
+    {% for m in meetings %}
+      <tr>
+        <td>{{ m.meeting_date.strftime('%Y-%m-%d') if m.meeting_date else '' }}</td>
+        <td><a href="/meetings/{{ m.id }}">{{ m.title }}</a></td>
+        <td><span class="status status-{{ m.status.value }}">{{ m.status.value }}</span></td>
+        <td>{{ (m.summary.summary_text[:140] + '…') if m.summary else '' }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="4">No meetings ingested yet.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2>Open follow-ups</h2>
+  <ul class="followup-list">
+    {% for f in follow_ups %}
+      <li>
+        <strong>{{ f.official.name }}</strong> (priority {{ f.priority }}) — {{ f.suggested_action }}
+        <div class="muted">{{ f.reason }}</div>
+      </li>
+    {% else %}
+      <li class="muted">Nothing open.</li>
+    {% endfor %}
+  </ul>
+  <a href="/follow-ups">View all follow-ups →</a>
+</section>
+{% endblock %}

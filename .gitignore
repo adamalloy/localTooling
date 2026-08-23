@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+
+# runtime data — meeting videos/audio, transcripts, sqlite db, downloaded documents
+data/
+!data/.gitkeep
+
+.env
+*.db
+*.sqlite3
+
+.DS_Store
