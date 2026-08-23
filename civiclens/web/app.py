@@ -1,15 +1,22 @@
 from __future__ import annotations
 
+import datetime as dt
+import shutil
+import uuid
 from pathlib import Path
 
-from fastapi import FastAPI, Query, Request
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, File, Form, Query, Request, UploadFile
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 
+from civiclens.analysis.meeting_summary import summarize_meeting
+from civiclens.analysis.statement_analysis import analyze_meeting_statements
+from civiclens.config import UPLOADS_DIR
 from civiclens.db import session_scope
+from civiclens.ingestion.pipeline import ingest_transcript_docx, ingest_transcript_text
 from civiclens.models import (
     City,
     FollowUpRecommendation,
@@ -55,6 +62,79 @@ def dashboard(request: Request, city_id: int | None = None):
             "dashboard.html",
             {"cities": cities, "meetings": meetings, "follow_ups": follow_ups, "selected_city_id": city_id},
         )
+
+
+@app.get("/meetings/new", response_class=HTMLResponse)
+def new_meeting_form(request: Request):
+    with session_scope() as db:
+        cities = db.query(City).order_by(City.name).all()
+        return templates.TemplateResponse(request, "meeting_new.html", {"cities": cities, "error": None})
+
+
+@app.post("/meetings/new")
+async def create_meeting(
+    request: Request,
+    city_id: str = Form(""),
+    new_city_name: str = Form(""),
+    meeting_date: str = Form(...),
+    title: str = Form(...),
+    meeting_type: str = Form(""),
+    transcript_file: UploadFile | None = File(None),
+):
+    error = None
+    if not city_id.strip() and not new_city_name.strip():
+        error = "Choose an existing city or enter a new city name."
+    elif not transcript_file or not transcript_file.filename:
+        error = "Choose a transcript file (.txt or .docx) to upload."
+    elif not transcript_file.filename.lower().endswith((".txt", ".docx")):
+        error = f"Unsupported file type: {transcript_file.filename}. Use .txt or .docx."
+
+    if error:
+        with session_scope() as db:
+            cities = db.query(City).order_by(City.name).all()
+            return templates.TemplateResponse(request, "meeting_new.html", {"cities": cities, "error": error})
+
+    suffix = Path(transcript_file.filename).suffix.lower()
+    dest = UPLOADS_DIR / f"{uuid.uuid4().hex}{suffix}"
+    with dest.open("wb") as out:
+        shutil.copyfileobj(transcript_file.file, out)
+
+    with session_scope() as db:
+        if new_city_name.strip():
+            city = db.query(City).filter_by(name=new_city_name.strip()).one_or_none()
+            if city is None:
+                city = City(name=new_city_name.strip())
+                db.add(city)
+                db.flush()
+        else:
+            city = db.get(City, int(city_id))
+
+        parsed_date = dt.date.fromisoformat(meeting_date)
+        if suffix == ".docx":
+            meeting = ingest_transcript_docx(
+                db, city.id, parsed_date, title, dest, meeting_type=meeting_type or None
+            )
+        else:
+            meeting = ingest_transcript_text(
+                db, city.id, parsed_date, title, dest.read_text(), meeting_type=meeting_type or None
+            )
+        meeting_id = meeting.id
+
+    return RedirectResponse(f"/meetings/{meeting_id}", status_code=303)
+
+
+@app.post("/meetings/{meeting_id}/analyze")
+def run_meeting_analysis(meeting_id: int):
+    """
+    Runs LLM topic/stance/grievance extraction and the meeting summary synchronously.
+    For a long meeting (hundreds of statements) this makes one API call per statement
+    plus one summary call, so the request can take several minutes — the browser will
+    just wait on it. Requires ANTHROPIC_API_KEY to be set.
+    """
+    with session_scope() as db:
+        analyze_meeting_statements(db, meeting_id)
+        summarize_meeting(db, meeting_id)
+    return RedirectResponse(f"/meetings/{meeting_id}", status_code=303)
 
 
 @app.get("/meetings/{meeting_id}", response_class=HTMLResponse)

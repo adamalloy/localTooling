@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}New Meeting — CivicLens{% endblock %}
+{% block content %}
+<a href="/">&larr; Dashboard</a>
+<h1>Upload a meeting transcript</h1>
+<p class="muted">Accepts a .txt or .docx transcript — one turn per line/paragraph,
+  "Speaker: text" or "Speaker (Affiliation): text". For video, use
+  <code>scripts/ingest_meeting.py --video</code> from the command line instead.</p>
+
+{% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+<form method="post" action="/meetings/new" enctype="multipart/form-data" class="stacked-form">
+  <label>City
+    <select name="city_id">
+      <option value="">— select —</option>
+      {% for c in cities %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>Or a new city name
+    <input type="text" name="new_city_name" placeholder="e.g. Berkeley">
+  </label>
+  <label>Date
+    <input type="date" name="meeting_date" required>
+  </label>
+  <label>Title
+    <input type="text" name="title" placeholder="City Council Regular Meeting" required>
+  </label>
+  <label>Meeting type (optional)
+    <input type="text" name="meeting_type" placeholder="Regular / Special / Committee">
+  </label>
+  <label>Transcript file (.txt or .docx)
+    <input type="file" name="transcript_file" accept=".txt,.docx" required>
+  </label>
+  <button type="submit">Upload &amp; ingest</button>
+</form>
+<p class="muted">Ingestion runs immediately and redirects you to the meeting page when done.
+  Topic/stance analysis and the meeting summary are a separate step — run them from the
+  meeting page once it's ingested (that step calls Claude and can take a while on a long
+  meeting, since it's one call per statement).</p>
+{% endblock %}

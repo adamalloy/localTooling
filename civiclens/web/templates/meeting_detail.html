@@ -32,7 +32,13 @@
   </div>
 </section>
 {% else %}
-<p class="muted">Not yet analyzed. Run <code>scripts/run_analysis.py {{ meeting.id }}</code>.</p>
+<p class="muted">Not yet analyzed.</p>
+<form method="post" action="/meetings/{{ meeting.id }}/analyze">
+  <button type="submit">Run topic/stance/summary analysis</button>
+</form>
+<p class="muted">This calls Claude once per statement plus a summary call — on a long
+  meeting it can take several minutes; the page will wait on it. Equivalent to running
+  <code>scripts/run_analysis.py {{ meeting.id }}</code> from the command line.</p>
 {% endif %}
 
 {% if votes %}

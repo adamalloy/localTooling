@@ -13,8 +13,9 @@ DATA_DIR = Path(os.environ.get("CIVICLENS_DATA_DIR", BASE_DIR / "data"))
 MEDIA_DIR = DATA_DIR / "media"
 TRANSCRIPTS_DIR = DATA_DIR / "transcripts"
 DOCUMENTS_DIR = DATA_DIR / "documents"
+UPLOADS_DIR = DATA_DIR / "uploads"
 
-for d in (DATA_DIR, MEDIA_DIR, TRANSCRIPTS_DIR, DOCUMENTS_DIR):
+for d in (DATA_DIR, MEDIA_DIR, TRANSCRIPTS_DIR, DOCUMENTS_DIR, UPLOADS_DIR):
     d.mkdir(parents=True, exist_ok=True)
 
 DATABASE_URL = os.environ.get("CIVICLENS_DATABASE_URL", f"sqlite:///{DATA_DIR / 'civiclens.db'}")
