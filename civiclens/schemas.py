@@ -4,26 +4,27 @@ from __future__ import annotations
 from pydantic import BaseModel, Field
 
 
-class TopicStance(BaseModel):
+class TopicMention(BaseModel):
+    statement_index: int = Field(
+        description="The database id from that statement's '[#123]' prefix in the transcript — "
+        "copy it exactly, never a line number or a guess"
+    )
     topic: str = Field(description="Short topic/issue name, e.g. 'Encampment sweeps', 'Police budget'")
     stance: str = Field(description="One of: support, oppose, neutral, mixed")
-    evidence_quote: str = Field(description="A short direct quote from the statement supporting this stance")
+    evidence_quote: str = Field(description="A short direct quote from that statement supporting this stance")
     confidence: float = Field(description="0.0-1.0 confidence in this topic/stance extraction")
 
 
-class GrievanceFlag(BaseModel):
-    contains_grievance: bool = Field(
-        description="True if the speaker describes being mistreated, harmed, or wronged by the "
-        "city, a department, or the council"
-    )
-    grievance_summary: str | None = Field(
-        default=None, description="One-sentence factual summary of the grievance, or null"
-    )
+class GrievanceMention(BaseModel):
+    statement_index: int = Field(description="The database id from that statement's '[#123]' prefix")
+    summary: str = Field(description="One-sentence factual summary of the mistreatment/harm described")
 
 
-class StatementAnalysis(BaseModel):
-    topics: list[TopicStance] = Field(default_factory=list)
-    grievance: GrievanceFlag
+class TopicsAndGrievances(BaseModel):
+    """Bulk extraction across every statement in a meeting (or chunk of one), in a single call."""
+
+    topic_mentions: list[TopicMention] = Field(default_factory=list)
+    grievances: list[GrievanceMention] = Field(default_factory=list)
 
 
 class TopicSplit(BaseModel):

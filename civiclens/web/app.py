@@ -13,7 +13,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 
 from civiclens.analysis.meeting_summary import summarize_meeting
-from civiclens.analysis.statement_analysis import analyze_meeting_statements
+from civiclens.analysis.topic_extraction import analyze_meeting_topics
 from civiclens.config import UPLOADS_DIR
 from civiclens.db import session_scope
 from civiclens.ingestion.pipeline import ingest_transcript_docx, ingest_transcript_text
@@ -126,13 +126,12 @@ async def create_meeting(
 @app.post("/meetings/{meeting_id}/analyze")
 def run_meeting_analysis(meeting_id: int):
     """
-    Runs LLM topic/stance/grievance extraction and the meeting summary synchronously.
-    For a long meeting (hundreds of statements) this makes one API call per statement
-    plus one summary call, so the request can take several minutes — the browser will
-    just wait on it. Requires ANTHROPIC_API_KEY to be set.
+    Runs LLM topic/stance/grievance extraction (one call per ~150K-char chunk — one
+    call total for a typical meeting) plus one meeting-summary call, synchronously.
+    Requires ANTHROPIC_API_KEY to be set.
     """
     with session_scope() as db:
-        analyze_meeting_statements(db, meeting_id)
+        analyze_meeting_topics(db, meeting_id)
         summarize_meeting(db, meeting_id)
     return RedirectResponse(f"/meetings/{meeting_id}", status_code=303)
 

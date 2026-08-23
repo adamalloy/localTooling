@@ -48,9 +48,11 @@ missing feature — ask and we can talk through it, but it isn't turned on by de
   - Legistar Web API client for agendas/minutes/votes/attachments (see "Data sources").
   - Generic PDF/HTML document fetcher for budgets, reports, and policy documents.
 - **Analysis** (`civiclens/analysis/`, via the Claude API):
-  - Per-statement topic + stance extraction, with the source quote (`statement_analysis.py`).
-  - Grievance detection — flags testimony describing concrete mistreatment by the
-    city, without judging the speaker (`statement_analysis.py`).
+  - Topic + stance extraction across the whole transcript, with the source quote per
+    mention, in one call per ~150K-char chunk — one call total for a typical meeting,
+    not one per statement (`topic_extraction.py`).
+  - Grievance detection in the same pass — flags testimony describing concrete
+    mistreatment by the city, without judging the speaker (`topic_extraction.py`).
   - Whole-meeting summary, key takeaways, controversial vs. consensus topics (`meeting_summary.py`).
   - Official alignment scoring against a reference politician's platform issues, and
     follow-up recommendations for engaging them (`alignment.py`).

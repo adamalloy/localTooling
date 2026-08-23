@@ -36,8 +36,8 @@
 <form method="post" action="/meetings/{{ meeting.id }}/analyze">
   <button type="submit">Run topic/stance/summary analysis</button>
 </form>
-<p class="muted">This calls Claude once per statement plus a summary call — on a long
-  meeting it can take several minutes; the page will wait on it. Equivalent to running
+<p class="muted">Usually just two calls total (topics/grievances across the whole
+  transcript, plus the summary) — not one per statement. Equivalent to running
   <code>scripts/run_analysis.py {{ meeting.id }}</code> from the command line.</p>
 {% endif %}
 
