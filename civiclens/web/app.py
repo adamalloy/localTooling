@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime as dt
 import shutil
 import uuid
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, File, Form, Query, Request, UploadFile
@@ -15,7 +16,7 @@ from sqlalchemy.orm import joinedload
 from civiclens.analysis.meeting_summary import summarize_meeting
 from civiclens.analysis.topic_extraction import analyze_meeting_topics
 from civiclens.config import UPLOADS_DIR
-from civiclens.db import session_scope
+from civiclens.db import init_db, session_scope
 from civiclens.ingestion.pipeline import ingest_transcript_docx, ingest_transcript_text
 from civiclens.models import (
     City,
@@ -36,7 +37,14 @@ from civiclens.models import (
 BASE_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
-app = FastAPI(title="CivicLens")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()  # creates tables on first run; a no-op once they already exist
+    yield
+
+
+app = FastAPI(title="CivicLens", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
 
