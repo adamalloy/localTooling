@@ -19,10 +19,31 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from civiclens.db import init_db, session_scope
 from civiclens.models import City, Official, PlatformIssue
 
-# Fill this in with the reference politician's actual stated positions before running
-# with --politician set to her name. Each entry: (topic, position_summary, priority 1-5, source_url).
+# Each entry: (topic, position_summary, priority 1-5, source_url).
+#
+# NOTE: the position_summary text below is a generic placeholder derived only from the
+# topic name you gave me — I don't have Jamie Joyce's actual stated positions or quotes
+# on these issues. Alignment scoring (civiclens/analysis/alignment.py) uses this text as
+# the reference to compare council members' votes/statements against, so a vague or
+# wrong summary produces a misleading score. Replace each summary with her real position
+# (ideally a paraphrase close to her own words) and fill in source_url with a link to
+# where she said it, before running alignment scoring for real.
 PLATFORM: list[tuple[str, str, int, str | None]] = [
-    # ("Affordable housing", "Supports expanding inclusionary zoning requirements citywide.", 5, None),
+    ("AI Reform", "Supports regulating artificial intelligence development and deployment. TODO: replace with her specific stated position.", 3, None),
+    ("Data Surveillance", "Opposes government/corporate data surveillance overreach and supports resident privacy protections. TODO: replace with her specific stated position.", 3, None),
+    ("Sex Abuse and Trafficking", "Supports stronger action against sex abuse and human trafficking and support for survivors. TODO: replace with her specific stated position.", 3, None),
+    ("ICE Reform", "Supports reforming ICE enforcement practices and protections for immigrant communities. TODO: replace with her specific stated position.", 3, None),
+    ("Government Digitization", "Supports modernizing and digitizing government services and records. TODO: replace with her specific stated position.", 3, None),
+    ("Epstein", "Supports transparency and accountability regarding the Jeffrey Epstein case and related institutional failures. TODO: replace with her specific stated position.", 3, None),
+    ("Sugar", "Position on sugar-related policy (e.g. public health regulation). TODO: this topic is ambiguous from the name alone — clarify and replace with her specific stated position.", 3, None),
+    ("Union and Labor Disputes", "Supports organized labor and fair resolution of union/labor disputes. TODO: replace with her specific stated position.", 3, None),
+    ("Palestine", "Position on Palestine-related policy. TODO: replace with her specific stated position.", 3, None),
+    ("Insurrection Act", "Supports constraining or reforming use of the Insurrection Act. TODO: replace with her specific stated position.", 3, None),
+    ("Trump Accountability", "Supports legal/political accountability for Donald Trump. TODO: replace with her specific stated position.", 3, None),
+    ("Government Corruption", "Supports rooting out government corruption. TODO: replace with her specific stated position.", 3, None),
+    ("Election Reform", "Supports reforming election laws/processes. TODO: replace with her specific stated position.", 3, None),
+    ("Bribery", "Supports anti-bribery enforcement and reform. TODO: replace with her specific stated position.", 3, None),
+    ("Dark Money", "Supports campaign finance transparency and limiting dark money in politics. TODO: replace with her specific stated position.", 3, None),
 ]
 
 
@@ -54,6 +75,11 @@ def main() -> None:
         if not args.opposition:
             if not PLATFORM:
                 print("PLATFORM list is empty — edit scripts/seed_platform.py with her actual positions first.")
+            elif any("TODO" in summary for _, summary, _, _ in PLATFORM):
+                print(
+                    "Warning: PLATFORM still has placeholder ('TODO') summaries — replace them with "
+                    "her actual stated positions before trusting alignment scores."
+                )
             for topic, summary, priority, source in PLATFORM:
                 existing = db.query(PlatformIssue).filter_by(official_id=official.id, topic=topic).one_or_none()
                 if existing is None:
