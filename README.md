@@ -35,7 +35,16 @@ missing feature — ask and we can talk through it, but it isn't turned on by de
 - **Ingestion** (`civiclens/ingestion/`):
   - Video → audio (ffmpeg) → transcription (faster-whisper, runs locally) → optional
     speaker diarization (pyannote.audio) → `Statement` rows.
-  - Plain-text transcript ingestion (`SPEAKER: text` format) as an alternative to video.
+  - Transcript ingestion from a `.txt` or `.docx` file you already have (e.g. from your
+    own audio-transcription workflow) as an alternative to video — one turn per line/
+    paragraph, `"Speaker: text"` or `"Speaker (Affiliation): text"`. Handles the shape a
+    diarized-audio export actually produces: inline `[HH:MM:SS]` markers are stripped
+    (the first one per turn is kept as that statement's timestamp), a line with no
+    speaker prefix is merged into the previous speaker's turn, speaker type
+    (official/staff/public) is inferred from the label itself ("Council Member X",
+    "City Clerk", etc.), and an official label is linked to an existing `Official` row
+    on an unambiguous surname match. See `ingest_transcript_lines` in
+    `civiclens/ingestion/pipeline.py`.
   - Legistar Web API client for agendas/minutes/votes/attachments (see "Data sources").
   - Generic PDF/HTML document fetcher for budgets, reports, and policy documents.
 - **Analysis** (`civiclens/analysis/`, via the Claude API):
@@ -51,9 +60,11 @@ missing feature — ask and we can talk through it, but it isn't turned on by de
 
 ## Not yet built (roadmap)
 
-- Auto-matching a diarized "SPEAKER_00" turn to a known Speaker/Official across
-  meetings (currently: a self-introduction heuristic *suggests* a name; you confirm
-  it by hand — there's no UI for that confirmation yet, only direct DB edits).
+- Auto-matching a diarized "SPEAKER_00" turn (from raw video ingestion, where speakers
+  aren't yet named) to a known Speaker/Official across meetings — currently a
+  self-introduction heuristic *suggests* a name; you confirm it by hand, and there's no
+  UI for that confirmation yet, only direct DB edits. (Text/.docx transcript ingestion
+  doesn't have this problem — it reads the speaker label straight from the transcript.)
 - A UI for entering votes (currently: `Vote` rows have to be inserted directly, e.g.
   from Legistar `eventitems` data — no scraper writes them automatically yet).
 - Multi-city rollup views (the schema supports multiple `City` rows now; the "profile

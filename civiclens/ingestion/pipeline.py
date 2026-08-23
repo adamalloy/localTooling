@@ -15,8 +15,9 @@ from civiclens.ingestion.transcribe import (
     merge_transcript_and_diarization,
     transcribe_audio,
 )
+from civiclens.ingestion.docx_transcript import extract_docx_paragraphs
 from civiclens.ingestion.video_source import resolve_video
-from civiclens.models import City, Meeting, Speaker, SpeakerType, Statement, TranscriptStatus
+from civiclens.models import City, Meeting, Official, Speaker, SpeakerType, Statement, TranscriptStatus
 
 log = logging.getLogger(__name__)
 
@@ -116,11 +117,115 @@ def ingest_transcript_text(
     transcript_text: str,
     meeting_type: str | None = None,
 ) -> Meeting:
+    """Text transcript, one paragraph per line (see ingest_transcript_lines for format)."""
+    return ingest_transcript_lines(
+        session, city_id, meeting_date, title, transcript_text.splitlines(), meeting_type=meeting_type
+    )
+
+
+def ingest_transcript_docx(
+    session: Session,
+    city_id: int,
+    meeting_date: dt.date,
+    title: str,
+    docx_path: Path,
+    meeting_type: str | None = None,
+) -> Meeting:
+    """Text transcript exported as a .docx (each paragraph a speaker turn)."""
+    return ingest_transcript_lines(
+        session, city_id, meeting_date, title, extract_docx_paragraphs(docx_path), meeting_type=meeting_type
+    )
+
+
+# Matches "Speaker Name: text" or "Speaker Name (Affiliation): text" at the start of a line.
+_SPEAKER_LINE_RE = re.compile(r"^\s*([A-Z][A-Za-z .'()\-]{1,80}):\s*(.+)$")
+# Inline minute-marker timestamps some transcription tools drop mid-sentence, e.g. "[00:12:34]".
+_TIMESTAMP_RE = re.compile(r"\[(\d{1,2}):(\d{2}):(\d{2})\]")
+_AFFILIATION_RE = re.compile(r"^(?P<name>.*?)\s*\((?P<affiliation>[^)]+)\)\s*$")
+
+_OFFICIAL_TITLE_RE = re.compile(r"^(Council\s?Member|Councilmember|Chair|Vice Chair|Mayor|President)\b", re.I)
+_STAFF_NAME_RE = re.compile(r"(City Clerk|City Administrator|Administration Staff|Mayor'?s Office Staff|Parliamentarian|\bStaff$)", re.I)
+
+
+def _strip_timestamps(text: str) -> tuple[str, float | None]:
+    """Remove inline [HH:MM:SS] markers, returning the cleaned text and the first timestamp (in seconds) if any."""
+    matches = list(_TIMESTAMP_RE.finditer(text))
+    first_seconds = None
+    if matches:
+        h, m, s = matches[0].groups()
+        first_seconds = int(h) * 3600 + int(m) * 60 + int(s)
+    cleaned = _TIMESTAMP_RE.sub("", text)
+    cleaned = re.sub(r"\s{2,}", " ", cleaned).strip()
+    return cleaned, first_seconds
+
+
+def _classify_speaker_type(label: str) -> SpeakerType:
+    if _OFFICIAL_TITLE_RE.search(label):
+        return SpeakerType.OFFICIAL
+    if _STAFF_NAME_RE.search(label):
+        return SpeakerType.STAFF
+    return SpeakerType.PUBLIC
+
+
+def _find_matching_official(session: Session, city_id: int, label: str) -> Official | None:
+    """Best-effort match of a title-prefixed label (e.g. 'Council Member Houston') to a
+    known Official by surname. Only links on an unambiguous single match — never guesses."""
+    remainder = _OFFICIAL_TITLE_RE.sub("", label).strip()
+    if not remainder:
+        return None
+    candidates = session.query(Official).filter(Official.city_id == city_id, Official.name.ilike(f"%{remainder}%")).all()
+    return candidates[0] if len(candidates) == 1 else None
+
+
+def _get_or_create_speaker(
+    session: Session, city_id: int, cache: dict[str, Speaker], label: str
+) -> Speaker:
+    m = _AFFILIATION_RE.match(label)
+    name, affiliation = (m.group("name"), m.group("affiliation")) if m else (label, None)
+
+    cached = cache.get(name)
+    if cached is not None:
+        return cached
+
+    speaker = session.query(Speaker).filter_by(city_id=city_id, name=name).one_or_none()
+    if speaker is None:
+        speaker_type = _classify_speaker_type(name)
+        official = _find_matching_official(session, city_id, name) if speaker_type == SpeakerType.OFFICIAL else None
+        speaker = Speaker(
+            city_id=city_id,
+            name=official.name if official else name,
+            speaker_type=speaker_type,
+            official_id=official.id if official else None,
+            notes=f"Affiliation (from transcript): {affiliation}" if affiliation else None,
+        )
+        session.add(speaker)
+        session.flush()
+    cache[name] = speaker
+    return speaker
+
+
+def ingest_transcript_lines(
+    session: Session,
+    city_id: int,
+    meeting_date: dt.date,
+    title: str,
+    lines: list[str],
+    meeting_type: str | None = None,
+) -> Meeting:
     """
-    For meetings where you already have an official transcript (e.g. clerk-published
-    minutes with speaker labels) instead of raw video. Expects lines roughly in the
-    form "SPEAKER NAME: text" — unlabeled lines are attributed to a single Unknown
-    Speaker for manual cleanup in the UI.
+    Core transcript ingestion. Each line is expected to start a new speaker turn in the
+    form "Speaker Name: text" or "Speaker Name (Affiliation): text" — this is the format
+    produced by exporting a diarized audio transcript to text/.docx. A line with no
+    speaker prefix is treated as a continuation of the previous turn (common when a
+    transcription tool splits one utterance across paragraphs); a line with no speaker
+    prefix and no prior turn yet (e.g. a document header/ID some export tools add) is
+    dropped. Inline "[HH:MM:SS]" markers are stripped from the text; the first one in a
+    turn is kept as that statement's start_seconds.
+
+    Speaker type (official/staff/public) is inferred from the label itself (e.g. "Council
+    Member X", "City Clerk") — a factual read of the transcript's own labels, not a
+    judgment about the person. An official label is linked to an existing Official row
+    only on an unambiguous surname match; otherwise it's left unlinked for manual review.
     """
     city = session.get(City, city_id)
     if city is None:
@@ -136,36 +241,38 @@ def ingest_transcript_text(
     session.add(meeting)
     session.flush()
 
-    line_re = re.compile(r"^\s*([A-Z][A-Za-z .'\-]{1,60}):\s*(.+)$")
     speaker_cache: dict[str, Speaker] = {}
+    current_speaker: Speaker | None = None
+    current_statement: Statement | None = None
     seq = 0
-    for line in transcript_text.splitlines():
-        line = line.strip()
+
+    for raw_line in lines:
+        line = raw_line.strip()
         if not line:
             continue
-        m = line_re.match(line)
-        name, text = (m.group(1).strip(), m.group(2).strip()) if m else (None, line)
 
-        key = name or "__unknown__"
-        speaker = speaker_cache.get(key)
-        if speaker is None:
-            speaker = (
-                session.query(Speaker).filter_by(city_id=city_id, name=name).one_or_none()
-                if name
-                else None
+        m = _SPEAKER_LINE_RE.match(line)
+        if m:
+            label, raw_text = m.group(1).strip(), m.group(2).strip()
+            text, start_seconds = _strip_timestamps(raw_text)
+            if not text:
+                continue
+            current_speaker = _get_or_create_speaker(session, city_id, speaker_cache, label)
+            current_statement = Statement(
+                meeting_id=meeting.id,
+                speaker_id=current_speaker.id,
+                sequence=seq,
+                start_seconds=start_seconds,
+                text=text,
             )
-            if speaker is None:
-                speaker = Speaker(
-                    city_id=city_id,
-                    name=name,
-                    speaker_type=SpeakerType.UNKNOWN if name else SpeakerType.UNKNOWN,
-                )
-                session.add(speaker)
-                session.flush()
-            speaker_cache[key] = speaker
-
-        session.add(Statement(meeting_id=meeting.id, speaker_id=speaker.id, sequence=seq, text=text))
-        seq += 1
+            session.add(current_statement)
+            seq += 1
+        elif current_statement is not None:
+            # Continuation of the previous speaker's turn.
+            text, _ = _strip_timestamps(line)
+            if text:
+                current_statement.text = f"{current_statement.text} {text}".strip()
+        # else: no speaker seen yet — drop (e.g. a document header line some exports add).
 
     session.flush()
     return meeting

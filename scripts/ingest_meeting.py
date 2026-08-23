@@ -11,9 +11,10 @@ Examples:
   python scripts/ingest_meeting.py --city Oakland --date 2026-01-06 \\
       --title "City Council Regular Meeting" --video "https://youtube.com/watch?v=..."
 
-  # From an already-transcribed text file (SPEAKER: text per line):
+  # From an already-transcribed text or .docx file (SPEAKER: text per paragraph/line;
+  # "SPEAKER (Affiliation): text" is also recognized for public commenters):
   python scripts/ingest_meeting.py --city Oakland --date 2026-01-06 \\
-      --title "City Council Regular Meeting" --transcript-file minutes.txt
+      --title "City Council Regular Meeting" --transcript-file minutes.docx
 """
 from __future__ import annotations
 
@@ -25,7 +26,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from civiclens.db import init_db, session_scope
-from civiclens.ingestion.pipeline import ingest_meeting, ingest_transcript_text
+from civiclens.ingestion.pipeline import ingest_meeting, ingest_transcript_docx, ingest_transcript_text
 from civiclens.models import City
 
 
@@ -46,7 +47,7 @@ def main() -> None:
     parser.add_argument("--meeting-type", default=None)
     src = parser.add_mutually_exclusive_group(required=True)
     src.add_argument("--video", help="Local file path or URL (YouTube supported)")
-    src.add_argument("--transcript-file", help="Path to an existing transcript text file")
+    src.add_argument("--transcript-file", help="Path to an existing transcript file (.txt or .docx)")
     args = parser.parse_args()
 
     init_db()
@@ -57,6 +58,10 @@ def main() -> None:
         if args.video:
             meeting = ingest_meeting(
                 db, city.id, meeting_date, args.title, args.video, meeting_type=args.meeting_type
+            )
+        elif args.transcript_file.lower().endswith(".docx"):
+            meeting = ingest_transcript_docx(
+                db, city.id, meeting_date, args.title, Path(args.transcript_file), meeting_type=args.meeting_type
             )
         else:
             text = Path(args.transcript_file).read_text()
