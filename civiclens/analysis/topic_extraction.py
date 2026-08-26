@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import logging
 
+import pydantic
 from sqlalchemy.orm import Session
 
 from civiclens.analysis.llm import extract
@@ -106,15 +107,19 @@ def _process_chunk(session: Session, chunk: list[Statement], by_id: dict[int, St
     """
     Extracts one chunk. If the model's output gets cut off — most likely when a chunk
     raises more topics than fit in EXTRACT_MAX_TOKENS — parsing the (truncated) JSON
-    raises a validation error; rather than losing the whole meeting's analysis to that,
-    split the chunk in half and retry each half, down to MIN_CHUNK_STATEMENTS, where a
-    further failure is logged and that handful of statements is skipped.
+    raises a pydantic ValidationError; rather than losing the whole meeting's analysis
+    to that, split the chunk in half and retry each half, down to MIN_CHUNK_STATEMENTS,
+    where a further failure is logged and that handful of statements is skipped.
+
+    Deliberately only catches ValidationError, the specific symptom of truncated
+    output — anything else (auth failure, rate limit, network error, ...) propagates
+    immediately instead of being silently retried into oblivion and hidden.
     """
     try:
         result: TopicsAndGrievances = extract(
             SYSTEM_PROMPT, _render(chunk), TopicsAndGrievances, max_tokens=EXTRACT_MAX_TOKENS
         )
-    except Exception:
+    except pydantic.ValidationError:
         if len(chunk) <= MIN_CHUNK_STATEMENTS:
             log.warning(
                 "Topic extraction failed for statement ids %s after splitting down to %d "
