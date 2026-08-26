@@ -12,11 +12,15 @@ rationale (no psychological/behavioral judgment of speakers).
 """
 from __future__ import annotations
 
+import logging
+
 from sqlalchemy.orm import Session
 
 from civiclens.analysis.llm import extract
 from civiclens.models import Stance, Statement, StatementTopic, Topic
 from civiclens.schemas import TopicsAndGrievances
+
+log = logging.getLogger(__name__)
 
 SYSTEM_PROMPT = """You analyze a full city council meeting transcript. Each line is one
 speaker's turn, prefixed with its database id like "[#123] Speaker: text" — always cite
@@ -32,9 +36,14 @@ Separately, flag only statements where the speaker describes concrete mistreatme
 harm caused by the city, a department, or the council (e.g. wrongful citation,
 unresponsive agency, unsafe conditions ignored) — not mere disagreement with a policy."""
 
-# One call per chunk this size; a typical meeting (even a long one, like a ~2.5 hour
-# council meeting with public comment) fits in a single chunk.
-MAX_CHUNK_CHARS = 150_000
+# One call per chunk this size. Bounded well under the model's context window — the
+# limit that actually matters here is the *output* budget (EXTRACT_MAX_TOKENS below):
+# a chunk this size raises enough topic mentions to comfortably fit that budget for a
+# typical meeting, while still cutting a few-hundred-statement meeting down to a
+# handful of calls instead of one per statement.
+MAX_CHUNK_CHARS = 45_000
+EXTRACT_MAX_TOKENS = 16_000
+MIN_CHUNK_STATEMENTS = 3  # below this, a failure is logged and skipped rather than split further
 
 
 def _chunk_statements(statements: list[Statement], max_chars: int) -> list[list[Statement]]:
@@ -61,6 +70,68 @@ def _render(statements: list[Statement]) -> str:
     return "\n".join(lines)
 
 
+def _apply_result(session: Session, result: TopicsAndGrievances, by_id: dict[int, Statement]) -> None:
+    for mention in result.topic_mentions:
+        statement = by_id.get(mention.statement_index)
+        if statement is None:
+            continue  # model cited an id we didn't send it — skip rather than guess
+        topic = session.query(Topic).filter_by(name=mention.topic).one_or_none()
+        if topic is None:
+            topic = Topic(name=mention.topic)
+            session.add(topic)
+            session.flush()
+        try:
+            stance = Stance(mention.stance.lower().strip())
+        except ValueError:
+            stance = Stance.NEUTRAL
+        session.add(
+            StatementTopic(
+                statement_id=statement.id,
+                topic_id=topic.id,
+                stance=stance,
+                confidence=mention.confidence,
+                evidence_quote=mention.evidence_quote,
+            )
+        )
+
+    for g in result.grievances:
+        statement = by_id.get(g.statement_index)
+        if statement is None:
+            continue
+        statement.contains_grievance = True
+        statement.grievance_summary = g.summary
+
+
+def _process_chunk(session: Session, chunk: list[Statement], by_id: dict[int, Statement]) -> None:
+    """
+    Extracts one chunk. If the model's output gets cut off — most likely when a chunk
+    raises more topics than fit in EXTRACT_MAX_TOKENS — parsing the (truncated) JSON
+    raises a validation error; rather than losing the whole meeting's analysis to that,
+    split the chunk in half and retry each half, down to MIN_CHUNK_STATEMENTS, where a
+    further failure is logged and that handful of statements is skipped.
+    """
+    try:
+        result: TopicsAndGrievances = extract(
+            SYSTEM_PROMPT, _render(chunk), TopicsAndGrievances, max_tokens=EXTRACT_MAX_TOKENS
+        )
+    except Exception:
+        if len(chunk) <= MIN_CHUNK_STATEMENTS:
+            log.warning(
+                "Topic extraction failed for statement ids %s after splitting down to %d "
+                "statement(s); skipping.",
+                [s.id for s in chunk],
+                len(chunk),
+                exc_info=True,
+            )
+            return
+        mid = len(chunk) // 2
+        _process_chunk(session, chunk[:mid], by_id)
+        _process_chunk(session, chunk[mid:], by_id)
+        return
+
+    _apply_result(session, result, by_id)
+
+
 def analyze_meeting_topics(session: Session, meeting_id: int) -> int:
     """Populates StatementTopic rows and Statement grievance fields for a whole meeting.
     Returns the number of statements covered. Clears any previous results for this
@@ -81,39 +152,7 @@ def analyze_meeting_topics(session: Session, meeting_id: int) -> int:
 
     by_id = {s.id: s for s in statements}
     for chunk in _chunk_statements(statements, MAX_CHUNK_CHARS):
-        result: TopicsAndGrievances = extract(
-            SYSTEM_PROMPT, _render(chunk), TopicsAndGrievances, max_tokens=8192
-        )
-
-        for mention in result.topic_mentions:
-            statement = by_id.get(mention.statement_index)
-            if statement is None:
-                continue  # model cited an id we didn't send it — skip rather than guess
-            topic = session.query(Topic).filter_by(name=mention.topic).one_or_none()
-            if topic is None:
-                topic = Topic(name=mention.topic)
-                session.add(topic)
-                session.flush()
-            try:
-                stance = Stance(mention.stance.lower().strip())
-            except ValueError:
-                stance = Stance.NEUTRAL
-            session.add(
-                StatementTopic(
-                    statement_id=statement.id,
-                    topic_id=topic.id,
-                    stance=stance,
-                    confidence=mention.confidence,
-                    evidence_quote=mention.evidence_quote,
-                )
-            )
-
-        for g in result.grievances:
-            statement = by_id.get(g.statement_index)
-            if statement is None:
-                continue
-            statement.contains_grievance = True
-            statement.grievance_summary = g.summary
+        _process_chunk(session, chunk, by_id)
 
     session.flush()
     return len(statements)

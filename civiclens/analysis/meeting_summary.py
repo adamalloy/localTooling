@@ -40,7 +40,7 @@ def summarize_meeting(session: Session, meeting_id: int) -> MeetingSummary:
 
     transcript_text = _build_transcript_text(session, meeting_id)
     user = f"Meeting: {meeting.title} ({meeting.meeting_date})\n\nTranscript:\n\n{transcript_text}"
-    result: MeetingSummaryResult = extract(SYSTEM_PROMPT, user, MeetingSummaryResult, max_tokens=4096)
+    result: MeetingSummaryResult = extract(SYSTEM_PROMPT, user, MeetingSummaryResult, max_tokens=8192)
 
     public_speaker_ids = (
         session.query(Statement.speaker_id)
