@@ -83,12 +83,29 @@ pip install -r requirements.txt
 cp .env.example .env   # fill in ANTHROPIC_API_KEY at minimum
 ```
 
-You'll also need `ffmpeg` on your PATH for video ingestion (`brew install ffmpeg` /
+That installs everything needed for the web app and for ingesting a transcript you
+already have (`.txt`/`.docx`, whether uploaded through the site or via
+`ingest_meeting.py --transcript-file`). It deliberately does **not** install
+`faster-whisper`/`pyannote.audio`/`yt-dlp` — those are large (they pull in `torch`)
+and only needed if you want this tool to transcribe raw audio/video itself. If you
+want that (`scripts/ingest_meeting.py --video`), install the extra requirements file
+instead of the base one:
+
+```bash
+pip install -r requirements-video.txt   # instead of requirements.txt — includes it
+```
+
+You'll also need `ffmpeg` on your PATH for that path (`brew install ffmpeg` /
 `apt install ffmpeg`). Diarization (who-said-what) additionally needs a Hugging Face
 token — see `.env.example`. Without it, video ingestion still works, but every
 statement in a meeting is attributed to one "Unknown Speaker" until you split it by hand.
 
-Run the web app:
+Every command below is always run the same way regardless of which requirements file
+you installed — `pip install -r requirements-video.txt` is a superset, not a
+different setup.
+
+Run the web app (make sure `.venv` is activated first — `source .venv/bin/activate` —
+or use `python -m uvicorn ...` if plain `uvicorn` isn't found on your PATH):
 
 ```bash
 uvicorn civiclens.web.app:app --reload

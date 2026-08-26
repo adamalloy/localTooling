@@ -1,3 +1,10 @@
+# Core deps for the web app, transcript upload/ingestion (.txt/.docx), and LLM
+# analysis. This is all you need for the transcript-upload workflow.
+#
+# Video ingestion (transcribing raw audio/video yourself, inside this tool) needs
+# additional heavy packages — see requirements-video.txt. Install those only if
+# you're using `scripts/ingest_meeting.py --video`; the web app and --transcript-file
+# path never import them.
 fastapi>=0.115
 uvicorn[standard]>=0.30
 sqlalchemy>=2.0
@@ -5,10 +12,7 @@ jinja2>=3.1
 python-multipart>=0.0.9
 pydantic>=2.7
 anthropic>=0.40
-faster-whisper>=1.0
-pyannote.audio>=3.3
 requests>=2.32
 python-dotenv>=1.0
 pypdf>=4.0
 python-docx>=1.1
-yt-dlp>=2024.8.1

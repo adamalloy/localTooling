@@ -1,0 +1,9 @@
+# Only needed for `scripts/ingest_meeting.py --video` (transcribing raw audio/video
+# yourself, inside this tool, instead of uploading a transcript you already have).
+# These pull in torch and are a large, slow install — skip this file entirely if
+# you're only using the transcript-upload workflow (the web app and
+# --transcript-file path never import any of this).
+-r requirements.txt
+faster-whisper>=1.0
+pyannote.audio>=3.3
+yt-dlp>=2024.8.1
