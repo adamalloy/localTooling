@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}{{ member.name }} — Biopunk Media{% endblock %}
+{% block content %}
+<h1>{{ member.name }}</h1>
+<div class="meta-row">
+  {% if member.role %}<div>Role: <b>{{ member.role }}</b></div>{% endif %}
+  {% if member.company %}<div>Company: <b><a href="/companies/{{ member.company.id }}">{{ member.company.name }}</a></b></div>{% endif %}
+  {% if member.house %}<div>House: <b><a href="/houses/{{ member.house.id }}">{{ member.house.name }}</a></b></div>{% endif %}
+</div>
+{% if member.bio %}<p>{{ member.bio }}</p>{% endif %}
+
+{% if socials %}
+<h2>Social accounts</h2>
+<p>{% for s in socials %}<span class="chip">{{ s.platform.value }}{% if s.handle %}: {{ s.handle }}{% endif %}</span>{% endfor %}</p>
+{% endif %}
+
+<h2>Content about this member</h2>
+{% if rows %}
+<div class="panel">
+<table>
+  <thead><tr><th>Title</th><th>Type</th><th>Status</th><th>Scheduled</th></tr></thead>
+  <tbody>
+    {% for row in rows %}
+    <tr onclick="window.location='/content/{{ row.item.id }}'" style="cursor:pointer">
+      <td><a href="/content/{{ row.item.id }}">{{ row.item.title }}</a></td>
+      <td>{{ row.item.content_type.value|replace('_',' ')|capitalize }}</td>
+      <td><span class="badge status-{{ row.item.status.value }}">{{ row.item.status.value|replace('_',' ') }}</span></td>
+      <td>{{ row.item.scheduled_at.strftime('%b %d, %Y %H:%M') if row.item.scheduled_at else '—' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<div class="empty-state">No content scoped to this member yet.</div>
+{% endif %}
+
+<h2>Content this member owns / is responsible for</h2>
+{% if owned %}
+<div class="panel">
+<table>
+  <thead><tr><th>Title</th><th>Scope</th><th>Status</th><th>Scheduled</th></tr></thead>
+  <tbody>
+    {% for row in owned %}
+    <tr onclick="window.location='/content/{{ row.item.id }}'" style="cursor:pointer">
+      <td><a href="/content/{{ row.item.id }}">{{ row.item.title }}</a></td>
+      <td>{{ row.scope_label }}</td>
+      <td><span class="badge status-{{ row.item.status.value }}">{{ row.item.status.value|replace('_',' ') }}</span></td>
+      <td>{{ row.item.scheduled_at.strftime('%b %d, %Y %H:%M') if row.item.scheduled_at else '—' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<div class="empty-state">Not assigned as owner on anything yet.</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Members — Biopunk Media{% endblock %}
+{% block content %}
+<h1>Members</h1>
+{% if members %}
+<div class="card-grid">
+  {% for m in members %}
+  <a class="card" href="/members/{{ m.id }}">
+    <div class="kicker">{{ m.role or 'Member' }}</div>
+    <h3>{{ m.name }}</h3>
+    <div style="color:var(--muted);font-size:13px;">
+      {% if m.company %}{{ m.company.name }}{% endif %}
+      {% if m.house %}{% if m.company %} · {% endif %}{{ m.house.name }}{% endif %}
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">No members seeded yet. Run <code>scripts/seed_biopunk_ecosystem.py</code>.</div>
+{% endif %}
+{% endblock %}

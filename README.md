@@ -1,4 +1,12 @@
-# CivicLens
+# localTooling
+
+This repo hosts local, single-user tools:
+
+- **[CivicLens](#civiclens)** (below) — city council meeting analysis.
+- **[Biopunk Media](biopunk_media/README.md)** — media planning/calendar tool for
+  the Biopunk ecosystem (members, companies, houses, project-wide).
+
+## CivicLens
 
 A local tool for analyzing Oakland (and, later, other district) city council meetings:
 video/transcript ingestion, meeting summaries, topic and controversy trends, council

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}{{ company.name }} — Biopunk Media{% endblock %}
+{% block content %}
+<h1>{{ company.name }}</h1>
+<div class="meta-row">
+  <div>Stage: <b>{{ company.stage.value|capitalize }}</b></div>
+  {% if company.cohort %}<div>Cohort: <b>{{ company.cohort }}</b></div>{% endif %}
+  {% if company.house %}<div>House: <b><a href="/houses/{{ company.house.id }}">{{ company.house.name }}</a></b></div>{% endif %}
+  {% if company.website %}<div><a href="{{ company.website }}" target="_blank" rel="noopener">{{ company.website }}</a></div>{% endif %}
+</div>
+{% if company.one_liner %}<p><i>{{ company.one_liner }}</i></p>{% endif %}
+{% if company.description %}<p>{{ company.description }}</p>{% endif %}
+
+{% if socials %}
+<h2>Social accounts</h2>
+<p>{% for s in socials %}<span class="chip">{{ s.platform.value }}{% if s.handle %}: {{ s.handle }}{% endif %}</span>{% endfor %}</p>
+{% endif %}
+
+<h2>Members</h2>
+<div class="card-grid">
+  {% for m in company.members %}
+  <a class="card" href="/members/{{ m.id }}"><div class="kicker">{{ m.role or 'Member' }}</div><h3>{{ m.name }}</h3></a>
+  {% else %}
+  <div class="empty-state">No members linked yet.</div>
+  {% endfor %}
+</div>
+
+<h2>Content <a class="btn secondary" style="float:right" href="/content/new">+ New</a></h2>
+{% if rows %}
+<div class="panel">
+<table>
+  <thead><tr><th>Title</th><th>Type</th><th>Status</th><th>Scheduled</th></tr></thead>
+  <tbody>
+    {% for row in rows %}
+    <tr onclick="window.location='/content/{{ row.item.id }}'" style="cursor:pointer">
+      <td><a href="/content/{{ row.item.id }}">{{ row.item.title }}</a></td>
+      <td>{{ row.item.content_type.value|replace('_',' ')|capitalize }}</td>
+      <td><span class="badge status-{{ row.item.status.value }}">{{ row.item.status.value|replace('_',' ') }}</span></td>
+      <td>{{ row.item.scheduled_at.strftime('%b %d, %Y %H:%M') if row.item.scheduled_at else '—' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<div class="empty-state">No content planned for this company yet.</div>
+{% endif %}
+{% endblock %}

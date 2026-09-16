@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Backlog — Biopunk Media{% endblock %}
+{% block content %}
+<h1>Content backlog</h1>
+
+<form class="filters" method="get" action="/content">
+  <select name="scope_type" onchange="this.form.submit()">
+    <option value="">All scopes</option>
+    {% for s in scope_types %}
+    <option value="{{ s.value }}" {% if f_scope_type == s.value %}selected{% endif %}>{{ s.value|capitalize }}</option>
+    {% endfor %}
+  </select>
+  <select name="status" onchange="this.form.submit()">
+    <option value="">All statuses</option>
+    {% for s in statuses %}
+    <option value="{{ s.value }}" {% if f_status == s.value %}selected{% endif %}>{{ s.value|replace('_',' ')|capitalize }}</option>
+    {% endfor %}
+  </select>
+  <select name="platform" onchange="this.form.submit()">
+    <option value="">All platforms</option>
+    {% for p in platforms %}
+    <option value="{{ p.value }}" {% if f_platform == p.value %}selected{% endif %}>{{ p.value|capitalize }}</option>
+    {% endfor %}
+  </select>
+  <label style="display:flex;align-items:center;gap:6px;color:var(--muted);font-size:13px;">
+    <input type="checkbox" name="unscheduled" value="1" onchange="this.form.submit()" {% if f_unscheduled %}checked{% endif %}>
+    Unscheduled only
+  </label>
+</form>
+
+{% if rows %}
+<div class="panel">
+<table>
+  <thead>
+    <tr><th>Title</th><th>Scope</th><th>Type</th><th>Status</th><th>Platforms</th><th>Scheduled</th></tr>
+  </thead>
+  <tbody>
+    {% for row in rows %}
+    <tr onclick="window.location='/content/{{ row.item.id }}'" style="cursor:pointer">
+      <td><a href="/content/{{ row.item.id }}">{{ row.item.title }}</a></td>
+      <td>{% if row.scope_url %}<a href="{{ row.scope_url }}">{{ row.scope_label }}</a>{% else %}{{ row.scope_label }}{% endif %}</td>
+      <td>{{ row.item.content_type.value|replace('_',' ')|capitalize }}</td>
+      <td><span class="badge status-{{ row.item.status.value }}">{{ row.item.status.value|replace('_',' ') }}</span></td>
+      <td>{% for p in row.platforms %}<span class="chip">{{ p }}</span>{% endfor %}</td>
+      <td>{{ row.item.scheduled_at.strftime('%b %d, %Y %H:%M') if row.item.scheduled_at else '—' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<div class="empty-state">Nothing here yet. <a href="/content/new">Add the first content item</a>.</div>
+{% endif %}
+{% endblock %}

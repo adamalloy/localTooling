@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}{{ row.item.title }} — Biopunk Media{% endblock %}
+{% block content %}
+<h1>{{ row.item.title }}</h1>
+<div class="meta-row">
+  <div>Scope: <b>{% if row.scope_url %}<a href="{{ row.scope_url }}">{{ row.scope_label }}</a>{% else %}{{ row.scope_label }}{% endif %}</b></div>
+  <div>Type: <b>{{ row.item.content_type.value|replace('_',' ')|capitalize }}</b></div>
+  <div>Status: <span class="badge status-{{ row.item.status.value }}">{{ row.item.status.value|replace('_',' ') }}</span></div>
+  <div>Owner: <b>{% if row.item.owner_member %}<a href="/members/{{ row.item.owner_member.id }}">{{ row.item.owner_member.name }}</a>{% else %}unassigned{% endif %}</b></div>
+</div>
+
+<div class="panel">
+  {% if row.item.summary %}<p>{{ row.item.summary }}</p>{% endif %}
+  <p><b>Scheduled:</b> {{ row.item.scheduled_at.strftime('%b %d, %Y %H:%M') if row.item.scheduled_at else 'not scheduled' }}</p>
+  {% if row.item.published_at %}<p><b>Published:</b> {{ row.item.published_at.strftime('%b %d, %Y %H:%M') }}</p>{% endif %}
+  <p><b>Platforms:</b> {% for p in row.platforms %}<span class="chip">{{ p }}</span>{% else %}none{% endfor %}</p>
+  {% if row.item.asset_url %}<p><b>Asset:</b> <a href="{{ row.item.asset_url }}" target="_blank" rel="noopener">{{ row.item.asset_url }}</a></p>{% endif %}
+  {% if row.item.notes %}<p><b>Notes:</b><br>{{ row.item.notes }}</p>{% endif %}
+</div>
+
+<div style="margin-top:16px;display:flex;gap:10px;">
+  <a class="btn" href="/content/{{ row.item.id }}/edit">Edit</a>
+  <form method="post" action="/content/{{ row.item.id }}/delete" onsubmit="return confirm('Delete this content item?')">
+    <button type="submit" class="danger">Delete</button>
+  </form>
+</div>
+{% endblock %}

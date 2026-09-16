@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}{% if item %}Edit content{% else %}New content{% endif %} — Biopunk Media{% endblock %}
+{% block content %}
+<h1>{% if item %}Edit content{% else %}New content{% endif %}</h1>
+
+<form class="stack" method="post" action="{% if item %}/content/{{ item.id }}/edit{% else %}/content/new{% endif %}">
+  <label>Title
+    <input type="text" name="title" required value="{{ item.title if item else '' }}">
+  </label>
+
+  <label>Summary
+    <textarea name="summary">{{ item.summary if item else '' }}</textarea>
+  </label>
+
+  <label>Content type
+    <select name="content_type">
+      {% for c in content_types %}
+      <option value="{{ c.value }}" {% if item and item.content_type == c %}selected{% endif %}>{{ c.value|replace('_',' ')|capitalize }}</option>
+      {% endfor %}
+    </select>
+  </label>
+
+  <label>Scope
+    <select name="scope_type" id="scope_type" onchange="toggleScope()">
+      {% for s in scope_types %}
+      <option value="{{ s.value }}" {% if item and item.scope_type == s %}selected{% endif %}>{{ s.value|capitalize }}</option>
+      {% endfor %}
+    </select>
+  </label>
+
+  <label id="scope_house_wrap">House
+    <select name="scope_house_id">
+      <option value="">—</option>
+      {% for h in houses %}
+      <option value="{{ h.id }}" {% if item and item.scope_type.value == 'house' and item.scope_id == h.id %}selected{% endif %}>{{ h.name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+
+  <label id="scope_company_wrap">Company
+    <select name="scope_company_id">
+      <option value="">—</option>
+      {% for c in companies %}
+      <option value="{{ c.id }}" {% if item and item.scope_type.value == 'company' and item.scope_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+
+  <label id="scope_member_wrap">Member
+    <select name="scope_member_id">
+      <option value="">—</option>
+      {% for m in members %}
+      <option value="{{ m.id }}" {% if item and item.scope_type.value == 'member' and item.scope_id == m.id %}selected{% endif %}>{{ m.name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+
+  <label>Status
+    <select name="status">
+      {% for s in statuses %}
+      <option value="{{ s.value }}" {% if item and item.status == s %}selected{% endif %}>{{ s.value|replace('_',' ')|capitalize }}</option>
+      {% endfor %}
+    </select>
+  </label>
+
+  <label>Owner (member responsible)
+    <select name="owner_member_id">
+      <option value="">unassigned</option>
+      {% for m in members %}
+      <option value="{{ m.id }}" {% if item and item.owner_member_id == m.id %}selected{% endif %}>{{ m.name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+
+  <label>Scheduled at
+    <input type="datetime-local" name="scheduled_at" value="{{ item.scheduled_at.strftime('%Y-%m-%dT%H:%M') if item and item.scheduled_at else '' }}">
+  </label>
+
+  <label>Platforms
+    <div class="checkbox-row">
+      {% for p in platforms %}
+      <label><input type="checkbox" name="platforms" value="{{ p.value }}" {% if p.value in selected_platforms %}checked{% endif %}> {{ p.value|capitalize }}</label>
+      {% endfor %}
+    </div>
+  </label>
+
+  <label>Asset link
+    <input type="url" name="asset_url" placeholder="https://..." value="{{ item.asset_url if item else '' }}">
+  </label>
+
+  <label>Notes
+    <textarea name="notes">{{ item.notes if item else '' }}</textarea>
+  </label>
+
+  <div style="display:flex;gap:10px;">
+    <button type="submit">{% if item %}Save changes{% else %}Create content{% endif %}</button>
+    {% if item %}<a class="btn secondary" href="/content/{{ item.id }}">Cancel</a>{% else %}<a class="btn secondary" href="/content">Cancel</a>{% endif %}
+  </div>
+</form>
+
+<script>
+function toggleScope() {
+  const val = document.getElementById('scope_type').value;
+  document.getElementById('scope_house_wrap').style.display = val === 'house' ? '' : 'none';
+  document.getElementById('scope_company_wrap').style.display = val === 'company' ? '' : 'none';
+  document.getElementById('scope_member_wrap').style.display = val === 'member' ? '' : 'none';
+}
+toggleScope();
+</script>
+{% endblock %}

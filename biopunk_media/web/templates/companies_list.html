@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Companies — Biopunk Media{% endblock %}
+{% block content %}
+<h1>Companies</h1>
+{% if companies %}
+<div class="card-grid">
+  {% for c in companies %}
+  <a class="card" href="/companies/{{ c.id }}">
+    <div class="kicker">{{ c.stage.value|capitalize }}{% if c.cohort %} · {{ c.cohort }}{% endif %}</div>
+    <h3>{{ c.name }}</h3>
+    <div style="color:var(--muted);font-size:13px;">{{ c.one_liner or '' }}</div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">No companies seeded yet. Run <code>scripts/seed_biopunk_ecosystem.py</code>.</div>
+{% endif %}
+{% endblock %}

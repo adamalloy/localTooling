@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Calendar — Biopunk Media{% endblock %}
+{% block content %}
+<div class="cal-header">
+  <h1>{{ month_name }} {{ year }}</h1>
+  <div class="cal-nav">
+    <a class="btn secondary" href="/calendar?year={{ prev_year }}&month={{ prev_month }}">&larr; Prev</a>
+    <a class="btn secondary" href="/calendar?year={{ today.year }}&month={{ today.month }}">Today</a>
+    <a class="btn secondary" href="/calendar?year={{ next_year }}&month={{ next_month }}">Next &rarr;</a>
+  </div>
+</div>
+
+<form class="filters" method="get" action="/calendar">
+  <input type="hidden" name="year" value="{{ year }}">
+  <input type="hidden" name="month" value="{{ month }}">
+  <select name="scope_type" onchange="this.form.submit()">
+    <option value="">All scopes</option>
+    {% for s in scope_types %}
+    <option value="{{ s.value }}" {% if f_scope_type == s.value %}selected{% endif %}>{{ s.value|capitalize }}</option>
+    {% endfor %}
+  </select>
+  <select name="status" onchange="this.form.submit()">
+    <option value="">All statuses</option>
+    {% for s in statuses %}
+    <option value="{{ s.value }}" {% if f_status == s.value %}selected{% endif %}>{{ s.value|replace('_',' ')|capitalize }}</option>
+    {% endfor %}
+  </select>
+  <select name="platform" onchange="this.form.submit()">
+    <option value="">All platforms</option>
+    {% for p in platforms %}
+    <option value="{{ p.value }}" {% if f_platform == p.value %}selected{% endif %}>{{ p.value|capitalize }}</option>
+    {% endfor %}
+  </select>
+</form>
+
+<div class="cal-grid">
+  {% for dow in ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'] %}
+  <div class="cal-dow">{{ dow }}</div>
+  {% endfor %}
+
+  {% for week in weeks %}
+    {% for day in week %}
+      {% if day == 0 %}
+        <div class="cal-cell empty"></div>
+      {% else %}
+        <div class="cal-cell {% if today.year == year and today.month == month and today.day == day %}today{% endif %}">
+          <div class="cal-daynum">{{ day }}</div>
+          {% for row in by_day.get(day, []) %}
+            <a class="cal-item" href="/content/{{ row.item.id }}" title="{{ row.item.title }} — {{ row.scope_label }}">{{ row.item.title }}</a>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endfor %}
+  {% endfor %}
+</div>
+
+<p style="margin-top:18px;color:var(--muted)">Unscheduled ideas and drafts don't show here — see the <a href="/content?unscheduled=1">backlog</a>.</p>
+{% endblock %}

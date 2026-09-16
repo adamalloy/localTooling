@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Houses — Biopunk Media{% endblock %}
+{% block content %}
+<h1>Houses</h1>
+{% if houses %}
+<div class="card-grid">
+  {% for h in houses %}
+  <a class="card" href="/houses/{{ h.id }}">
+    <div class="kicker">{{ h.kind.value|capitalize }}{% if h.city %} · {{ h.city }}{% endif %}</div>
+    <h3>{{ h.name }}</h3>
+    <div style="color:var(--muted);font-size:13px;">{{ h.description or '' }}</div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">No houses seeded yet. Run <code>scripts/seed_biopunk_ecosystem.py</code>.</div>
+{% endif %}
+{% endblock %}

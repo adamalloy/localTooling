@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}{{ house.name }} — Biopunk Media{% endblock %}
+{% block content %}
+<h1>{{ house.name }}</h1>
+<div class="meta-row">
+  <div>Kind: <b>{{ house.kind.value|capitalize }}</b></div>
+  {% if house.city %}<div>City: <b>{{ house.city }}</b></div>{% endif %}
+</div>
+{% if house.description %}<p>{{ house.description }}</p>{% endif %}
+
+{% if socials %}
+<h2>Social accounts</h2>
+<p>{% for s in socials %}<span class="chip">{{ s.platform.value }}{% if s.handle %}: {{ s.handle }}{% endif %}</span>{% endfor %}</p>
+{% endif %}
+
+<h2>Residents / companies</h2>
+<div class="card-grid">
+  {% for c in house.companies %}
+  <a class="card" href="/companies/{{ c.id }}"><div class="kicker">Company</div><h3>{{ c.name }}</h3></a>
+  {% endfor %}
+  {% for m in house.members %}
+  <a class="card" href="/members/{{ m.id }}"><div class="kicker">Member</div><h3>{{ m.name }}</h3></a>
+  {% endfor %}
+  {% if not house.companies and not house.members %}
+  <div class="empty-state">No companies or members linked to this house yet.</div>
+  {% endif %}
+</div>
+
+<h2>Content <a class="btn secondary" style="float:right" href="/content/new">+ New</a></h2>
+{% if rows %}
+<div class="panel">
+<table>
+  <thead><tr><th>Title</th><th>Type</th><th>Status</th><th>Scheduled</th></tr></thead>
+  <tbody>
+    {% for row in rows %}
+    <tr onclick="window.location='/content/{{ row.item.id }}'" style="cursor:pointer">
+      <td><a href="/content/{{ row.item.id }}">{{ row.item.title }}</a></td>
+      <td>{{ row.item.content_type.value|replace('_',' ')|capitalize }}</td>
+      <td><span class="badge status-{{ row.item.status.value }}">{{ row.item.status.value|replace('_',' ') }}</span></td>
+      <td>{{ row.item.scheduled_at.strftime('%b %d, %Y %H:%M') if row.item.scheduled_at else '—' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<div class="empty-state">No content planned for this house yet.</div>
+{% endif %}
+{% endblock %}
