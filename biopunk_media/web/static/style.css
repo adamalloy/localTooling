@@ -102,6 +102,14 @@ tr:hover td { background: var(--panel-2); }
 .badge.status-scheduled { color: #58a6ff; border-color: #58a6ff; }
 .badge.status-published { color: var(--accent); border-color: var(--accent); }
 .badge.status-archived { color: var(--muted); }
+.badge.status-pending { color: var(--warn); border-color: var(--warn); }
+.badge.status-ready { color: var(--accent); border-color: var(--accent); }
+.badge.status-failed { color: var(--accent-2); border-color: var(--accent-2); }
+.badge.status-none { color: var(--muted); }
+.badge.status-proposed { color: var(--muted); }
+.badge.status-in_progress { color: var(--warn); border-color: var(--warn); }
+.badge.status-shipped { color: var(--accent); border-color: var(--accent); }
+.badge.status-declined { color: var(--muted); text-decoration: line-through; }
 
 .chip {
   display: inline-block;

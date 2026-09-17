@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}{% if company %}Edit company{% else %}New company{% endif %} — Biopunk Media{% endblock %}
+{% block content %}
+<h1>{% if company %}Edit {{ company.name }}{% else %}New company{% endif %}</h1>
+
+<form class="stack" method="post" action="{% if company %}/companies/{{ company.id }}/edit{% else %}/companies/new{% endif %}">
+  <label>Name
+    <input type="text" name="name" required value="{{ company.name if company else '' }}">
+  </label>
+
+  <label>House
+    <select name="house_id">
+      <option value="">—</option>
+      {% for h in houses %}
+      <option value="{{ h.id }}" {% if company and company.house_id == h.id %}selected{% endif %}>{{ h.name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+
+  <label>Stage
+    <select name="stage">
+      {% for s in stages %}
+      <option value="{{ s.value }}" {% if company and company.stage == s %}selected{% endif %}>{{ s.value|capitalize }}</option>
+      {% endfor %}
+    </select>
+  </label>
+
+  <label>Cohort
+    <input type="text" name="cohort" placeholder="e.g. 2026 Winter" value="{{ company.cohort if company else '' }}">
+  </label>
+
+  <label>Website
+    <input type="url" name="website" placeholder="https://..." value="{{ company.website if company else '' }}">
+  </label>
+
+  <label>One-liner
+    <input type="text" name="one_liner" value="{{ company.one_liner if company else '' }}">
+  </label>
+
+  <label>Description
+    <textarea name="description">{{ company.description if company else '' }}</textarea>
+  </label>
+
+  <div style="display:flex;gap:10px;">
+    <button type="submit">{% if company %}Save changes{% else %}Create company{% endif %}</button>
+    {% if company %}<a class="btn secondary" href="/companies/{{ company.id }}">Cancel</a>{% else %}<a class="btn secondary" href="/companies">Cancel</a>{% endif %}
+  </div>
+</form>
+{% endblock %}

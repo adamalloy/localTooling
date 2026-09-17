@@ -1,7 +1,10 @@
-# Biopunk Media web app only (no LLM/video deps — it doesn't need those).
+# Biopunk Media web app + AI summaries (no local-transcription deps — see
+# requirements-biopunk-media-video.txt for those).
 fastapi>=0.115
 uvicorn[standard]>=0.30
 sqlalchemy>=2.0
 jinja2>=3.1
 python-multipart>=0.0.9
 python-dotenv>=1.0
+anthropic>=0.40
+pydantic>=2.7

@@ -1,0 +1,6 @@
+# Only needed for scripts/transcribe_media.py (local Whisper transcription).
+# Heavy — pulls in torch. Install on top of requirements-biopunk-media.txt.
+-r requirements-biopunk-media.txt
+faster-whisper>=1.0
+yt-dlp>=2024.8.6
+requests>=2.32

@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}{{ asset.title }} — Biopunk Media{% endblock %}
+{% block content %}
+<h1>{{ asset.title }}</h1>
+<div class="meta-row">
+  <div>Scope: <b>{% if scope_url %}<a href="{{ scope_url }}">{{ scope_label }}</a>{% else %}{{ scope_label }}{% endif %}</b></div>
+  <div>Source: <b>{{ asset.source_type.value|capitalize }}</b></div>
+  <div>Transcript: <span class="badge status-{{ asset.transcript_status.value }}">{{ asset.transcript_status.value }}</span></div>
+  <div>Summary: <span class="badge status-{{ asset.summary_status.value }}">{{ asset.summary_status.value }}</span></div>
+</div>
+
+<div class="panel">
+  {% if asset.source_type.value == 'upload' and asset.file_path %}
+  <video controls style="width:100%;max-height:480px;border-radius:8px;">
+    <source src="/uploads/{{ asset.file_path }}">
+  </video>
+  {% elif asset.external_url %}
+    {% set embed = asset.external_url|youtube_embed_url %}
+    {% if embed %}
+    <iframe src="{{ embed }}" style="width:100%;aspect-ratio:16/9;border:0;border-radius:8px;" allowfullscreen></iframe>
+    {% else %}
+    <p><a href="{{ asset.external_url }}" target="_blank" rel="noopener">Watch video ↗</a></p>
+    {% endif %}
+  {% endif %}
+  {% if asset.notes %}<p style="margin-top:14px;"><b>Notes:</b><br>{{ asset.notes }}</p>{% endif %}
+</div>
+
+<div style="margin-top:14px;display:flex;gap:10px;">
+  <a class="btn secondary" href="/media/{{ asset.id }}/edit">Edit</a>
+  <form method="post" action="/media/{{ asset.id }}/delete" onsubmit="return confirm('Delete this media asset? This also deletes its tracked ideas.')">
+    <button type="submit" class="danger">Delete</button>
+  </form>
+</div>
+
+<h2>Transcript</h2>
+{% if asset.transcript_text %}
+<div class="panel">
+  <p style="color:var(--muted);font-size:12px;margin-top:0;">Source: {{ asset.transcript_source.value }}</p>
+  <details {% if asset.transcript_text|length < 1500 %}open{% endif %}>
+    <summary style="cursor:pointer;color:var(--accent);">Show / hide transcript</summary>
+    <p style="white-space:pre-wrap;margin-top:10px;">{{ asset.transcript_text }}</p>
+  </details>
+</div>
+{% else %}
+<div class="empty-state">
+  No transcript yet.
+  {% if asset.transcript_status.value == 'pending' %}Queued — run <code>python scripts/transcribe_media.py --media-id {{ asset.id }}</code>.{% endif %}
+</div>
+{% endif %}
+
+<div class="panel" style="margin-top:12px;">
+  <form class="stack" method="post" action="/media/{{ asset.id }}/transcript">
+    <label>{% if asset.transcript_text %}Replace transcript{% else %}Paste a transcript{% endif %}
+      <textarea name="transcript_text" placeholder="Paste transcript text, or run scripts/transcribe_media.py --media-id {{ asset.id }} to generate one locally">{{ asset.transcript_text or '' }}</textarea>
+    </label>
+    <div><button type="submit" class="secondary">Save transcript</button></div>
+  </form>
+</div>
+
+<h2>AI summary</h2>
+<div class="panel">
+  {% if asset.summary %}
+  <p>{{ asset.summary }}</p>
+  {% if key_points %}
+  <p><b>Key points:</b></p>
+  <ul>{% for kp in key_points %}<li>{{ kp }}</li>{% endfor %}</ul>
+  {% endif %}
+  <p style="color:var(--muted);font-size:12px;">Generated {{ asset.summary_generated_at.strftime('%b %d, %Y %H:%M') if asset.summary_generated_at else '' }}</p>
+  {% elif asset.summary_status.value == 'failed' %}
+  <p style="color:var(--accent-2)">Summary generation failed — see notes below, or try again.</p>
+  {% else %}
+  <p style="color:var(--muted)">No summary yet.</p>
+  {% endif %}
+  <form method="post" action="/media/{{ asset.id }}/summarize">
+    <button type="submit" {% if not asset.transcript_text %}disabled title="Add a transcript first"{% endif %}>
+      {% if asset.summary %}Regenerate summary{% else %}Generate AI summary{% endif %}
+    </button>
+  </form>
+  {% if not has_anthropic %}
+  <p style="color:var(--muted);font-size:12px;margin-top:8px;">No ANTHROPIC_API_KEY set — this will fail until one is configured (see .env.example).</p>
+  {% endif %}
+</div>
+
+<h2>Proposed ideas <span style="color:var(--muted);font-weight:400;text-transform:none;">— tracked over time, independent of the summary above</span></h2>
+{% if ideas %}
+<div class="panel">
+<table>
+  <thead><tr><th>Idea</th><th>Description</th><th>Source</th><th>Status</th><th></th></tr></thead>
+  <tbody>
+    {% for idea in ideas %}
+    <tr>
+      <td><b>{{ idea.title }}</b></td>
+      <td>{{ idea.description or '' }}</td>
+      <td><span class="chip">{{ idea.source }}</span></td>
+      <td>
+        <form method="post" action="/ideas/{{ idea.id }}/status" style="display:inline;">
+          <select name="status" onchange="this.form.submit()">
+            {% for s in idea_statuses %}
+            <option value="{{ s.value }}" {% if idea.status == s %}selected{% endif %}>{{ s.value|replace('_',' ')|capitalize }}</option>
+            {% endfor %}
+          </select>
+        </form>
+      </td>
+      <td>
+        <form method="post" action="/ideas/{{ idea.id }}/delete" onsubmit="return confirm('Delete this idea?')" style="display:inline;">
+          <button type="submit" class="secondary" style="padding:4px 8px;">✕</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<div class="empty-state">No ideas tracked yet.</div>
+{% endif %}
+
+<div class="panel" style="margin-top:12px;">
+  <form class="stack" method="post" action="/media/{{ asset.id }}/ideas">
+    <label>Add an idea by hand
+      <input type="text" name="title" placeholder="Idea title" required>
+    </label>
+    <label>Description
+      <input type="text" name="description" placeholder="Optional detail">
+    </label>
+    <div><button type="submit" class="secondary">Add idea</button></div>
+  </form>
+</div>
+{% endblock %}

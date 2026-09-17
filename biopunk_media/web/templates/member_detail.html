@@ -14,6 +14,24 @@
 <p>{% for s in socials %}<span class="chip">{{ s.platform.value }}{% if s.handle %}: {{ s.handle }}{% endif %}</span>{% endfor %}</p>
 {% endif %}
 
+<h2>Media <a class="btn secondary" style="float:right" href="/media/new?scope_type=member&scope_id={{ member.id }}">+ New</a></h2>
+{% if media %}
+<div class="card-grid">
+  {% for m in media %}
+  <a class="card" href="/media/{{ m.id }}">
+    <div class="kicker">{{ m.source_type.value|capitalize }}</div>
+    <h3>{{ m.title }}</h3>
+    <div style="display:flex;gap:6px;margin-top:6px;">
+      <span class="badge status-{{ m.transcript_status.value }}">transcript: {{ m.transcript_status.value }}</span>
+      <span class="badge status-{{ m.summary_status.value }}">summary: {{ m.summary_status.value }}</span>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">No videos/media yet for this member.</div>
+{% endif %}
+
 <h2>Content about this member</h2>
 {% if rows %}
 <div class="panel">

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ company.name }} — Biopunk Media{% endblock %}
 {% block content %}
-<h1>{{ company.name }}</h1>
+<h1>{{ company.name }} <a class="btn secondary" style="float:right" href="/companies/{{ company.id }}/edit">Edit</a></h1>
 <div class="meta-row">
   <div>Stage: <b>{{ company.stage.value|capitalize }}</b></div>
   {% if company.cohort %}<div>Cohort: <b>{{ company.cohort }}</b></div>{% endif %}
@@ -24,6 +24,24 @@
   <div class="empty-state">No members linked yet.</div>
   {% endfor %}
 </div>
+
+<h2>Media <a class="btn secondary" style="float:right" href="/media/new?scope_type=company&scope_id={{ company.id }}">+ New</a></h2>
+{% if media %}
+<div class="card-grid">
+  {% for m in media %}
+  <a class="card" href="/media/{{ m.id }}">
+    <div class="kicker">{{ m.source_type.value|capitalize }}</div>
+    <h3>{{ m.title }}</h3>
+    <div style="display:flex;gap:6px;margin-top:6px;">
+      <span class="badge status-{{ m.transcript_status.value }}">transcript: {{ m.transcript_status.value }}</span>
+      <span class="badge status-{{ m.summary_status.value }}">summary: {{ m.summary_status.value }}</span>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">No videos/media yet for this company.</div>
+{% endif %}
 
 <h2>Content <a class="btn secondary" style="float:right" href="/content/new">+ New</a></h2>
 {% if rows %}

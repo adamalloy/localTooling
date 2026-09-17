@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Companies — Biopunk Media{% endblock %}
 {% block content %}
-<h1>Companies</h1>
+<h1>Companies <a class="btn secondary" style="float:right" href="/companies/new">+ New company</a></h1>
 {% if companies %}
 <div class="card-grid">
   {% for c in companies %}

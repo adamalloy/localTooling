@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Proposed ideas — Biopunk Media{% endblock %}
+{% block content %}
+<h1>Proposed ideas</h1>
+
+<form class="filters" method="get" action="/ideas">
+  <select name="status" onchange="this.form.submit()">
+    <option value="">All statuses</option>
+    {% for s in statuses %}
+    <option value="{{ s.value }}" {% if f_status == s.value %}selected{% endif %}>{{ s.value|replace('_',' ')|capitalize }}</option>
+    {% endfor %}
+  </select>
+  <select name="scope_type" onchange="this.form.submit()">
+    <option value="">All scopes</option>
+    {% for s in scope_types %}
+    <option value="{{ s.value }}" {% if f_scope_type == s.value %}selected{% endif %}>{{ s.value|capitalize }}</option>
+    {% endfor %}
+  </select>
+</form>
+
+{% if rows %}
+<div class="panel">
+<table>
+  <thead><tr><th>Idea</th><th>From</th><th>Scope</th><th>Status</th></tr></thead>
+  <tbody>
+    {% for row in rows %}
+    <tr>
+      <td><b>{{ row.idea.title }}</b><br><span style="color:var(--muted);font-size:12px;">{{ row.idea.description or '' }}</span></td>
+      <td><a href="/media/{{ row.asset.id }}">{{ row.asset.title }}</a></td>
+      <td>{{ row.scope_label }}</td>
+      <td>
+        <form method="post" action="/ideas/{{ row.idea.id }}/status" style="display:inline;">
+          <select name="status" onchange="this.form.submit()">
+            {% for s in statuses %}
+            <option value="{{ s.value }}" {% if row.idea.status == s %}selected{% endif %}>{{ s.value|replace('_',' ')|capitalize }}</option>
+            {% endfor %}
+          </select>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<div class="empty-state">Nothing tracked yet — ideas show up here once a video's been summarized, or add one by hand from a media asset's page.</div>
+{% endif %}
+{% endblock %}

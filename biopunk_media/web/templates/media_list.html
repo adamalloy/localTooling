@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Media library — Biopunk Media{% endblock %}
+{% block content %}
+<h1>Media library <a class="btn secondary" style="float:right" href="/media/new">+ New media</a></h1>
+
+<form class="filters" method="get" action="/media">
+  <select name="scope_type" onchange="this.form.submit()">
+    <option value="">All scopes</option>
+    {% for s in scope_types %}
+    <option value="{{ s.value }}" {% if f_scope_type == s.value %}selected{% endif %}>{{ s.value|capitalize }}</option>
+    {% endfor %}
+  </select>
+  <select name="transcript_status" onchange="this.form.submit()">
+    <option value="">All transcript statuses</option>
+    {% for s in transcript_statuses %}
+    <option value="{{ s.value }}" {% if f_transcript_status == s.value %}selected{% endif %}>{{ s.value|capitalize }}</option>
+    {% endfor %}
+  </select>
+</form>
+
+{% if rows %}
+<div class="card-grid">
+  {% for row in rows %}
+  <a class="card" href="/media/{{ row.asset.id }}">
+    <div class="kicker">{% if row.scope_url %}{{ row.scope_label }}{% else %}{{ row.scope_label }}{% endif %}</div>
+    <h3>{{ row.asset.title }}</h3>
+    <div style="display:flex;gap:6px;margin-top:6px;">
+      <span class="badge status-{{ row.asset.transcript_status.value }}">transcript: {{ row.asset.transcript_status.value }}</span>
+      <span class="badge status-{{ row.asset.summary_status.value }}">summary: {{ row.asset.summary_status.value }}</span>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">No media yet. <a href="/media/new">Add the first video</a>.</div>
+{% endif %}
+{% endblock %}

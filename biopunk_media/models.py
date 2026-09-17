@@ -89,6 +89,37 @@ class ContentStatus(str, enum.Enum):
     ARCHIVED = "archived"
 
 
+class MediaSourceType(str, enum.Enum):
+    UPLOAD = "upload"      # file stored locally under config.UPLOADS_DIR
+    LINK = "link"           # external URL — nothing stored locally
+
+
+class TranscriptSource(str, enum.Enum):
+    NONE = "none"
+    PROVIDED = "provided"    # pasted/uploaded by hand
+    GENERATED = "generated"  # produced by scripts/transcribe_media.py (local Whisper)
+
+
+class TranscriptStatus(str, enum.Enum):
+    NONE = "none"
+    PENDING = "pending"      # queued for scripts/transcribe_media.py
+    READY = "ready"
+    FAILED = "failed"
+
+
+class SummaryStatus(str, enum.Enum):
+    NONE = "none"
+    READY = "ready"
+    FAILED = "failed"
+
+
+class IdeaStatus(str, enum.Enum):
+    PROPOSED = "proposed"
+    IN_PROGRESS = "in_progress"
+    SHIPPED = "shipped"
+    DECLINED = "declined"
+
+
 class House(Base):
     __tablename__ = "houses"
 
@@ -192,3 +223,69 @@ class ContentItemPlatform(Base):
     platform: Mapped[Platform] = mapped_column(Enum(Platform), nullable=False)
 
     content_item: Mapped[ContentItem] = relationship(back_populates="platforms")
+
+
+class MediaAsset(Base):
+    """
+    A source video (presentation, pitch, demo day talk, etc.) — the raw material
+    the media engine works from, as distinct from `ContentItem` (a planned/published
+    piece of outbound content). Scoped the same way as ContentItem: member / company /
+    house / project.
+    """
+
+    __tablename__ = "media_assets"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    title: Mapped[str] = mapped_column(String(300), nullable=False)
+
+    scope_type: Mapped[ScopeType] = mapped_column(Enum(ScopeType), nullable=False)
+    scope_id: Mapped[int | None] = mapped_column(Integer)  # null when scope_type == PROJECT
+
+    source_type: Mapped[MediaSourceType] = mapped_column(Enum(MediaSourceType), nullable=False)
+    file_path: Mapped[str | None] = mapped_column(String(500))  # relative to config.UPLOADS_DIR
+    original_filename: Mapped[str | None] = mapped_column(String(300))
+    external_url: Mapped[str | None] = mapped_column(String(500))
+
+    transcript_text: Mapped[str | None] = mapped_column(Text)
+    transcript_source: Mapped[TranscriptSource] = mapped_column(
+        Enum(TranscriptSource), default=TranscriptSource.NONE
+    )
+    transcript_status: Mapped[TranscriptStatus] = mapped_column(
+        Enum(TranscriptStatus), default=TranscriptStatus.NONE
+    )
+
+    summary: Mapped[str | None] = mapped_column(Text)
+    key_points: Mapped[str | None] = mapped_column(Text)  # one bullet per line
+    summary_status: Mapped[SummaryStatus] = mapped_column(Enum(SummaryStatus), default=SummaryStatus.NONE)
+    summary_generated_at: Mapped[dt.datetime | None] = mapped_column(DateTime)
+
+    notes: Mapped[str | None] = mapped_column(Text)
+
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=now)
+    updated_at: Mapped[dt.datetime] = mapped_column(DateTime, default=now, onupdate=now)
+
+    ideas: Mapped[list["ProposedIdea"]] = relationship(
+        back_populates="media_asset", cascade="all, delete-orphan"
+    )
+
+
+class ProposedIdea(Base):
+    """
+    An idea extracted from a video (by the AI summary pass, or added by hand),
+    tracked as its own item with a status — separate from the freeform summary
+    text so it doesn't disappear on re-summarize and can be followed up on.
+    """
+
+    __tablename__ = "proposed_ideas"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    media_asset_id: Mapped[int] = mapped_column(ForeignKey("media_assets.id"), nullable=False)
+    title: Mapped[str] = mapped_column(String(300), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[IdeaStatus] = mapped_column(Enum(IdeaStatus), default=IdeaStatus.PROPOSED)
+    source: Mapped[str] = mapped_column(String(20), default="ai")  # "ai" or "manual"
+
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=now)
+    updated_at: Mapped[dt.datetime] = mapped_column(DateTime, default=now, onupdate=now)
+
+    media_asset: Mapped[MediaAsset] = relationship(back_populates="ideas")

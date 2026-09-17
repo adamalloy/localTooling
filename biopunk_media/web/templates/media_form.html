@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}{% if asset %}Edit media{% else %}New media{% endif %} — Biopunk Media{% endblock %}
+{% block content %}
+<h1>{% if asset %}Edit media{% else %}New media{% endif %}</h1>
+
+<form class="stack" method="post" enctype="multipart/form-data"
+      action="{% if asset %}/media/{{ asset.id }}/edit{% else %}/media/new{% endif %}">
+  <label>Title
+    <input type="text" name="title" required value="{{ asset.title if asset else '' }}">
+  </label>
+
+  <label>Scope
+    <select name="scope_type" id="scope_type" onchange="toggleScope()">
+      {% for s in scope_types %}
+      <option value="{{ s.value }}"
+        {% if asset and asset.scope_type == s %}selected{% elif not asset and default_scope_type == s.value %}selected{% endif %}>
+        {{ s.value|capitalize }}
+      </option>
+      {% endfor %}
+    </select>
+  </label>
+
+  <label id="scope_house_wrap">House
+    <select name="scope_house_id">
+      <option value="">—</option>
+      {% for h in houses %}
+      <option value="{{ h.id }}"
+        {% if asset and asset.scope_type.value == 'house' and asset.scope_id == h.id %}selected
+        {% elif not asset and default_scope_type == 'house' and default_scope_id == h.id %}selected{% endif %}>
+        {{ h.name }}
+      </option>
+      {% endfor %}
+    </select>
+  </label>
+
+  <label id="scope_company_wrap">Company
+    <select name="scope_company_id">
+      <option value="">—</option>
+      {% for c in companies %}
+      <option value="{{ c.id }}"
+        {% if asset and asset.scope_type.value == 'company' and asset.scope_id == c.id %}selected
+        {% elif not asset and default_scope_type == 'company' and default_scope_id == c.id %}selected{% endif %}>
+        {{ c.name }}
+      </option>
+      {% endfor %}
+    </select>
+  </label>
+
+  <label id="scope_member_wrap">Member
+    <select name="scope_member_id">
+      <option value="">—</option>
+      {% for m in members %}
+      <option value="{{ m.id }}"
+        {% if asset and asset.scope_type.value == 'member' and asset.scope_id == m.id %}selected
+        {% elif not asset and default_scope_type == 'member' and default_scope_id == m.id %}selected{% endif %}>
+        {{ m.name }}
+      </option>
+      {% endfor %}
+    </select>
+  </label>
+
+  {% if not asset %}
+  <label>Source
+    <select name="source_type" id="source_type" onchange="toggleSource()">
+      <option value="upload">Upload a file</option>
+      <option value="link">Link (YouTube, Drive, Frame.io, etc.)</option>
+    </select>
+  </label>
+
+  <label id="source_upload_wrap">Video file
+    <input type="file" name="file" accept="video/*">
+  </label>
+
+  <label id="source_link_wrap">URL
+    <input type="url" name="external_url" placeholder="https://...">
+  </label>
+
+  <label>Transcript (optional — paste one if you already have it)
+    <textarea name="transcript_text" placeholder="Leave blank to add later, or generate one with scripts/transcribe_media.py"></textarea>
+  </label>
+  {% endif %}
+
+  <label>Notes
+    <textarea name="notes">{{ asset.notes if asset else '' }}</textarea>
+  </label>
+
+  <div style="display:flex;gap:10px;">
+    <button type="submit">{% if asset %}Save changes{% else %}Add media{% endif %}</button>
+    {% if asset %}<a class="btn secondary" href="/media/{{ asset.id }}">Cancel</a>{% else %}<a class="btn secondary" href="/media">Cancel</a>{% endif %}
+  </div>
+</form>
+
+<script>
+function toggleScope() {
+  const val = document.getElementById('scope_type').value;
+  document.getElementById('scope_house_wrap').style.display = val === 'house' ? '' : 'none';
+  document.getElementById('scope_company_wrap').style.display = val === 'company' ? '' : 'none';
+  document.getElementById('scope_member_wrap').style.display = val === 'member' ? '' : 'none';
+}
+function toggleSource() {
+  const sel = document.getElementById('source_type');
+  if (!sel) return;
+  const val = sel.value;
+  document.getElementById('source_upload_wrap').style.display = val === 'upload' ? '' : 'none';
+  document.getElementById('source_link_wrap').style.display = val === 'link' ? '' : 'none';
+}
+toggleScope();
+toggleSource();
+</script>
+{% endblock %}
