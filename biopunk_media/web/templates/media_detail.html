@@ -15,9 +15,13 @@
     <source src="/uploads/{{ asset.file_path }}">
   </video>
   {% elif asset.external_url %}
-    {% set embed = asset.external_url|youtube_embed_url %}
+    {% set embed = asset.external_url|embeddable_iframe_url %}
     {% if embed %}
-    <iframe src="{{ embed }}" style="width:100%;aspect-ratio:16/9;border:0;border-radius:8px;" allowfullscreen></iframe>
+    <iframe src="{{ embed }}" style="width:100%;aspect-ratio:16/9;border:0;border-radius:8px;" allow="fullscreen" allowfullscreen></iframe>
+    <p style="margin-top:6px;color:var(--muted);font-size:12px;">
+      Blank above? The link's owner needs to allow embedding (Frame.io: share settings → allow this link to be embedded) — meanwhile,
+      <a href="{{ asset.external_url }}" target="_blank" rel="noopener">open it directly ↗</a>.
+    </p>
     {% else %}
     <p><a href="{{ asset.external_url }}" target="_blank" rel="noopener">Watch video ↗</a></p>
     {% endif %}

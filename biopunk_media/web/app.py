@@ -114,7 +114,28 @@ def youtube_embed_url(url: str) -> str | None:
     return None
 
 
+def embeddable_iframe_url(url: str) -> str | None:
+    """
+    Best-effort iframe src for a link, or None if we don't know how to embed it
+    (the template falls back to a plain "watch" link in that case).
+
+    Frame.io share links (f.io/... or share.frame.io/...) are generally designed
+    to be dropped straight into an iframe — no URL transform needed — but whether
+    a given link actually renders depends on that link's own sharing/embed
+    settings, which we can't check server-side. Try it; if the frame comes back
+    blank, the link's owner needs to enable embedding (Frame.io: share settings
+    → allow this link to be embedded) or you fall back to the "Watch ↗" link.
+    """
+    yt = youtube_embed_url(url)
+    if yt:
+        return yt
+    if "f.io/" in url or "frame.io/" in url:
+        return url
+    return None
+
+
 templates.env.filters["youtube_embed_url"] = youtube_embed_url
+templates.env.filters["embeddable_iframe_url"] = embeddable_iframe_url
 
 
 # ---------------------------------------------------------------- home / calendar
